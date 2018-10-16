@@ -17,5 +17,5 @@ cd blog
 git --work-tree=_site add --all
 git --work-tree=_site commit -m 'autogen: update'
 git --work-tree=_site push -f
-git --work-tree=_site checkout sources
+git checkout sources
 
