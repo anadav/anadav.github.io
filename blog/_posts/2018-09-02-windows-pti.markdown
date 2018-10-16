@@ -3,6 +3,8 @@ layout: post
 title:  "Can you break Windows Page Table Isolation?"
 date:   2018-09-02 14:52:01 -0700
 categories: Windows
+redirect_from:
+  - /blog/windows-pti
 ---
 
 

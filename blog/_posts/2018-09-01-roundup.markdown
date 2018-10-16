@@ -3,6 +3,8 @@ layout: post
 title:  "roundup() vs round_up()"
 date:   2018-10-15 14:52:01 -0700
 categories: Linux
+redirect_from:
+  - /blog/roundup
 ---
 
 Occasionally, you make a mistake that makes you think that surely others have made a similar one.

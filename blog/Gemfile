@@ -34,6 +34,8 @@ gem "pygments.rb"
 gem "unicode_utils"
 gem "jekyll-scholar"
 
+gem 'jekyll-redirect-from'
+
 # Dependency issues
 #gem "rouge", "= 2.2.1"
 #gem "kramdown", "= 1.17.0"

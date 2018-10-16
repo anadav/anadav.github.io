@@ -3,6 +3,8 @@ layout: post
 title:  "How new-lines affect the Linux kernel performance"
 date:   2018-09-03 14:52:01 -0700
 categories: Blog
+redirect_from:
+  - /blog/linux-inline
 ---
 
 The Linux kernel strives to be fast and efficient. As it is written mostly in C, it can mostly control how the generated machine code looks. Nevertheless, as the kernel code is compiled into machine code, the compiler optimizes the generated code to improve its performance. The kernel code, however, employs uncommon coding techniques, which can fail code optimizations. In this blog-post, I would share my experience in analyzing the reasons for poor code inlining of the kernel code. Although the performance improvement are not significant in most cases, understanding these issues are valuable in preventing them from becoming larger. New-lines, as promised, will be one of the reasons, though not the only one.

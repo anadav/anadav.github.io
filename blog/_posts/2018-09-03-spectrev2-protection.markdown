@@ -3,6 +3,8 @@ layout: post
 title:  "Are you protected against Spectre & Meltdown? Probably not"
 date:   2018-09-03 14:52:01 -0700
 categories: Linux
+redirect_from:
+  - /blog/spectre
 ---
 
 Several months ago, everybody was surprised to find out that the CPU speculative execution can be exploited to leak privileged information, using attacks that were named Spectre and Meltdown. Technical blogs and even the main-stream media reported broadly about those vulnerabilities. CPU vendors have struggled to provide firmware patches that would prevent the attacks in a timely manner. OS and other software providers introduced software solutions such as the [retpoline][retpoline-man] and page table isolation (PTI) to protect against these vulnerabilities. All of these mitigations caused performance degradation, required extensive engineering effort, and caused various [problems][emergency-patch]. 
