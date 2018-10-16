@@ -3,8 +3,8 @@
 # step 1
 git branch -D master
 git checkout -b master master-empty
-git checkout sources
 git push --set-upstream origin master -f
+git checkout sources
 
 # step 2
 cd blog
