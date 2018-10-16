@@ -1,0 +1,28 @@
+---
+layout: post
+title:  "roundup() vs round_up()"
+date:   2018-10-15 14:52:01 -0700
+categories: Linux
+---
+
+Occasionally, you make a mistake that makes you think that surely others have made a similar one.
+
+Such case happened to me one day when I was trying, in Linux, to round up a number (x) into a multiple of another number (y). The Linux kernel provides two macros for such an operation:
+
+* [round_up(x, y)][round-up] which only works when y is a power of 2, as it does the rounding using bit operations for efficiency. If y is not a power of 2, it quietly returns the wrong result.
+
+* [roundup(x, y)][roundup] which works for any value of y.
+
+Yes, this is not a typo. One macro is named round_up() and the other roundup(). Both macros are defined in the same file (kernel.h), so their developers  should have known that there are similarly named macros. They are not defined, however, next to each other and there is no comment in the code to explain the difference between the two, so it is very easy for a developer to use the wrong macro. There is also no assertion to ensure that y is a power of 2 in round_up(), and unfortunately, adding such an assertion is not as simple as adding a single line, since the macro is also used to define the size of some arrays.
+
+Both macros are widely used (~500 times each), which made me suspect that in some cases round_up() might have been used inappropriately (i.e., when y is not a power of 2). Out of curiosity, I added a static assertion just for the cases in which y is known to be constant in compilation time. Immediately, two bugs were found, one in a [GPIO driver][gpio-driver] and a second one in the [USB video class driver][usb-bug]. The impact of these bugs is not clear. There might actually be more bugs in cases where y is not known during compilation time or when a different kernel configuration is used.
+
+A less lazy person would have written a [Coccinelle][coccinelle] script to rename one of the functions and to add the required assertions, but making such tree-wide changes is a time consuming task. I have just submitted patches to fix the issues I found.
+
+People can take different lessons from this story. Personally, it just made me think: how many more silly bugs exist that can easily be prevented by adding simple assertions? 
+
+[round-up]:    https://elixir.bootlin.com/linux/v4.17/source/include/linux/kernel.h#L87
+[roundup]:     https://elixir.bootlin.com/linux/v4.17/source/include/linux/kernel.h#L113
+[gpio-driver]: https://lore.kernel.org/patchwork/patch/913171/
+[usb-bug]:     https://patchwork.kernel.org/patch/10447343/
+[coccinelle]:  http://coccinelle.lip6.fr/
