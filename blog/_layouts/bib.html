@@ -16,7 +16,9 @@ layout: page
 
 {% assign paper = '/publications/' | append: page.entry.key | append: '.pdf' %}
 {% assign slides = '/publications/' | append: page.entry.key | append: '-slides.pdf' %}
+{% assign slides_pptx = '/publications/' | append: page.entry.key | append: '-slides.pptx' %}
 {% assign poster = '/publications/' | append: page.entry.key | append: '-poster.pdf' %}
+{% assign code = '/publications/' | append: page.entry.key | append: '-code.zip' %}
 
 <p>
 {{ page.entry.abstract }}
@@ -35,7 +37,21 @@ layout: page
 {% endfor %}
 
 {% for static_file in site.static_files %}
-    {% if static_file.path == slides %}
-    	{{ reference }} [<a href="{{ slides }}">Poster</a>]
+    {% if static_file.path == slides_pptx %}
+    	{{ reference }} [<a href="{{ slides_pptx }}">Slides (pptx)</a>]
     {% endif %}
 {% endfor %}
+
+{% for static_file in site.static_files %}
+    {% if static_file.path == poster %}
+    	{{ reference }} [<a href="{{ poster }}">Poster</a>]
+    {% endif %}
+{% endfor %}
+
+{% for static_file in site.static_files %}
+    {% if static_file.path == code %}
+    	{{ reference }} [<a href="{{ code }}">Code</a>]
+    {% endif %}
+{% endfor %}
+
+
