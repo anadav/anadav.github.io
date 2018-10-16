@@ -24,11 +24,14 @@ github_username: anadav
 highlighter: pygments
 
 scholar:
-  details_dir:    bibliography
-  details_layout: bibtex.html
-  details_link:   Details
+  style:  	association-for-computing-machinery.csl
+  details_dir:    publications
+  details_layout: bib.html
+  details_link:   " Details"
   group_by: year
   group_order: descending
+  bibliography_list_tag: div
+  bibliography_item_tag: p
 
 # Build settings
 markdown: kramdown

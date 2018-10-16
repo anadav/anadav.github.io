@@ -1,9 +1,41 @@
 ---
+layout: page
 ---
-{{ reference }}
 
-{% if entry.abstract %}
-<p>{{ entry.abstract }}</p>
+<p>{{ page.entry.author }}</p>
+
+{% if page.entry.type == "inproceedings" %}
+<p><em>{{ page.entry.booktitle }}</em>, {{ page.entry.year }}</p>
+{% elsif page.entry.type == "article" %}
+<p><em>{{ page.entry.journal }}</em>, {{ page.entry.year }}</p>
+{% elsif page.entry.type == "phdthesis" %}
+<p>{{ page.entry.year }}</p>
+{% else %}
+<p><em>{{ page.entry.number }}</em>, {{ page.entry.year }}</p>
 {% endif %}
 
-<pre>{{ entry.bibtex }}</pre>
+{% assign paper = '/publications/' | append: page.entry.key | append: '.pdf' %}
+{% assign slides = '/publications/' | append: page.entry.key | append: '-slides.pdf' %}
+{% assign poster = '/publications/' | append: page.entry.key | append: '-poster.pdf' %}
+
+<p>
+{{ page.entry.abstract }}
+</p>
+
+{% for static_file in site.static_files %}
+    {% if static_file.path == paper %}
+    	{{ reference }} [<a href="{{ paper }}">PDF</a>]
+    {% endif %}
+{% endfor %}
+
+{% for static_file in site.static_files %}
+    {% if static_file.path == slides %}
+    	{{ reference }} [<a href="{{ slides }}">Slides</a>]
+    {% endif %}
+{% endfor %}
+
+{% for static_file in site.static_files %}
+    {% if static_file.path == slides %}
+    	{{ reference }} [<a href="{{ slides }}">Poster</a>]
+    {% endif %}
+{% endfor %}
