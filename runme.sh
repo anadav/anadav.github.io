@@ -11,7 +11,7 @@ cd blog
 bundle exec jekyll clean
 bundle exec jekyll build
 #bundle exec jekyll serve
-cp -r ../downloads _site 
+#cp -r ../downloads _site 
 cd ..
 git checkout master
 
