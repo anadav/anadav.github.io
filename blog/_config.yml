@@ -40,6 +40,13 @@ plugins:
   - jekyll-feed
   - jekyll-scholar
   - jekyll-redirect-from
+  - jekyll-assets
+
+assets:
+        dirname: assets
+        baseurl: /assets/
+        sources:
+          - _assets/downloads
 
 # Exclude from processing.
 # The following items will not be processed, by default. Create a custom list
