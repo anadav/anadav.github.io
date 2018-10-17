@@ -1,8 +1,8 @@
 ---
 layout: post
 title:  "How new-lines affect the Linux kernel performance"
-date:   2018-09-03 14:52:01 -0700
-categories: Blog
+date:   2018-10-10 14:52:01 -0700
+categories: Linux
 redirect_from:
   - /blog/linux-inline
 ---
