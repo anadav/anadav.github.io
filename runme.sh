@@ -9,8 +9,9 @@ git checkout sources
 # step 2
 cd blog
 bundle exec jekyll clean
-bundle exec jekyll serve
-cp -r ../download _site 
+bundle exec jekyll build
+#bundle exec jekyll serve
+cp -r ../downloads _site 
 cd ..
 git checkout master
 
@@ -25,6 +26,12 @@ git --work-tree=_site add .gitignore
 git --work-tree=_site add --all
 git --work-tree=_site commit -m 'autogen: update'
 git --work-tree=_site push -f
-#sleep 3
+
+echo " " >> index.html
+git add index.html
+git commit -m 'trigger redoing'
+sleep 3
+git push
+
 git checkout sources
 git reset --hard
