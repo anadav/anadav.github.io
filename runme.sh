@@ -8,7 +8,9 @@ git checkout sources
 
 # step 2
 cd blog
+bundle exec jekyll clean
 bundle exec jekyll serve
+cp -r ../download _site 
 cd ..
 git checkout master
 
