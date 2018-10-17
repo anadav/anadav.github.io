@@ -41,4 +41,4 @@ Feel free to use my silly script (through this [link][pti-script])  and let me k
 [vbs]:         https://docs.microsoft.com/en-us/windows/security/threat-protection/windows-defender-exploit-guard/enable-virtualization-based-protection-of-code-integrity
 [windows-bug]: https://www.bleepingcomputer.com/news/microsoft/meltdown-patch-opened-bigger-security-hole-on-windows-7/
 [kva-shadow]:  https://blogs.technet.microsoft.com/srd/2018/03/23/kva-shadow-mitigating-meltdown-on-windows/
-[pti-script]:{{ site.url }}/downloads/pti_test.py
+[pti-script]:{{ site.baseurl }}/downloads/pti_test.py
