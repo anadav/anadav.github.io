@@ -25,5 +25,5 @@ git --work-tree=_site add .gitignore
 git --work-tree=_site add --all
 git --work-tree=_site commit -m 'autogen: update'
 git --work-tree=_site push -f
-git checkout sources
-git reset --hard
+#git checkout sources
+#git reset --hard
