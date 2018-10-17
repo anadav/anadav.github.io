@@ -1,0 +1,248 @@
+---
+layout: post
+title:  "How new-lines affect the Linux kernel performance"
+date:   2018-09-03 14:52:01 -0700
+categories: Blog
+redirect_from:
+  - /blog/linux-inline
+---
+
+The Linux kernel strives to be fast and efficient. As it is written mostly in C, it can mostly control how the generated machine code looks. Nevertheless, as the kernel code is compiled into machine code, the compiler optimizes the generated code to improve its performance. The kernel code, however, employs uncommon coding techniques, which can fail code optimizations. In this blog-post, I would share my experience in analyzing the reasons for poor code inlining of the kernel code. Although the performance improvement are not significant in most cases, understanding these issues are valuable in preventing them from becoming larger. New-lines, as promised, will be one of the reasons, though not the only one.
+
+## New lines in inline assembly
+
+One fine day, I encountered a strange phenomenon: minor changes I performed in the Linux source code, caused small but noticeable performance degradation. As I expected these changes to actually improve performance, I decided to disassemble the functions which I changed. To my surprise, I realized that my change caused functions that were previously inlined, not to be inlined anymore. The decision not to inline these functions seem dubious as they were short.
+
+I decided to further investigate this issue and to check whether it affects other parts of the kernel. Arguably, it is rather hard to say whether a function should be inlined, so some sort of indication of bad inlining decisions is needed. C functions that are declared with the inline keyword are not bound to be inlined by the compiler, so having a non-inlined function that is marked with the inline keyword is not an indication by itself for bad inlining decision.
+
+Arguably, there are two simple heuristics to find functions which were suspiciously not inlined for the wrong reason. One heuristic is to look for short (binary-wise) functions by looking at the static symbols. A second heuristic is to look for functions which appear in multiple translation units (objects), as this might indicate they were declared as inline but were eventually not inlined, and that they are in common use. In both cases, there may be valid reasons for the compiler not to inline functions even if they are short, for example if they are used as a value for a function pointer. However, they can give an indication if something is "very wrong" in how inlining is performed, or more correctly, ignored.
+
+In practice, I used both heuristics, but in this post I will only use the second one to check whether inlining decisions seem dubious. To do so I rebuild the kernel, using the localyesconfig make target to incorporate the modules into the core. I ensure the "kernel hacking" features in the config are off, as those tend to blow the size of the code and rightfully cause functions not to be inlined. I then looked for static function which had the most instances in the built kernel:
+
+{% highlight console %}
+$ nm --print-size ./vmlinux | grep ' t ' | cut -d' ' -f2- | sort | uniq -c \
+	| grep -v '^      1' | sort -n -r | head -n 5
+
+Instances   Size               Function Name
+     36     0000000000000019 t copy_overflow
+      8     000000000000012f t jhash
+      8     000000000000000d t arch_local_save_flags
+      7     0000000000000017 t dst_output
+      6     000000000000004e t put_page
+{% endhighlight %}
+
+As seen, the results are suspicious. As  mentioned before, in some cases there are good reasons for functions not to be inlined. jhash() is a big function (303 bytes) so it is reasonable for it is not to be inlined. dst_output() address is used as a function pointer, which causes it not to be inlined. Yet the other functions seem to be great candidates for inlining, and it is not clear why they are not inlined. Let's look at the source code of copy_overflow(), which has many instances in the binary:
+
+{% highlight c %}
+static inline void copy_overflow(int size, unsigned long count)
+{
+      WARN(1, "Buffer overflow detected (%d < %lu)!\n", size, count);
+}
+{% endhighlight %}
+
+Will the disassembly tell us anything?
+
+{% highlight objdump linenos %}
+0xffffffff819315e0 <+0>: push   %rbp
+0xffffffff819315e1 <+1>: mov    %rsi,%rdx
+0xffffffff819315e4 <+4>: mov    %edi,%esi
+0xffffffff819315e6 <+6>: mov    $0xffffffff820bc4b8,%rdi
+0xffffffff819315ed <+13>: mov    %rsp,%rbp
+0xffffffff819315f0 <+16>: callq  0xffffffff81089b70 <__warn_printk>
+0xffffffff819315f5 <+21>: ud2    
+0xffffffff819315f7 <+23>: pop    %rbp
+0xffffffff819315f8 <+24>: retq   
+{% endhighlight %}
+
+Apparently not. Notice that out of the 9 assembly instructions that are shown above, 6 deal with the function entry and exit - for example, updating the frame pointer, and only the three (in lines 4, 6 and 7) are really needed.
+
+To understand the problem, we must dig deeper and look at the warning mechanism in Linux. In x86, this mechanism shares the same infrastructure with the bug reporting mechanism. When a bug or a warning are triggered, the kernel prints the filename and the line number in the source-code that triggered the bug, which can then used to analyze the root-cause of the bug. A naive implementation, however, would cause the code-cache to be polluted with the this information as well as the function call to the function that prints the error message, consequently causing performance degradation.
+
+Linux therefore uses a different scheme by setting an exception triggering instruction ([ud2][ud2] on x86) and saving the warning information in a bug table that is set in a different section in the executable. Once a warning is triggered using the WARN() macro, an exception is triggered and the exception handler looks for the warning information - the source-code filename and line - in the table.
+
+Inline assembly is used to save this information in [_BUG_FLAGS()][BUG_FLAGS]. Here is its code after some simplifications to ease readability:
+
+{% highlight c %}
+asm volatile("1: ud2\n"
+             ".pushsection __bug_table,\"aw\"\n"
+             "2: .long 1b - 2b\n" /* bug_entry::bug_addr */
+             "   .long %c0 - 2b\n" /* bug_entry::file */
+             "   .word %c1\n"      /* bug_entry::line */
+             " .word %c2\n"   /* bug_entry::flags */
+             " .org 2b+%c3\n"
+             ".popsection"
+                 : : "i" (__FILE__), "i" (__LINE__),
+                     "i" (flags),
+                     "i" (sizeof(struct bug_entry)));
+{% endhighlight %}
+
+Ignoring the assembly shenanigans that this code uses, we can see that in practice it generates a single ud2 instruction. However, the compiler considers this code to be "big" and consequently oftentimes does not inline functions that use WARN() or similar functions.
+
+The reason turns to be the newline characters (marked as '\n' above). The kernel compiler, GCC, is unaware to the code size that will be generated by the inline assembly. It therefore tries to estimate its size based on newline characters and statement separators (';' on x86). In GCC, we can see the code that performs this estimation in the estimate_num_insns() function:
+
+{% highlight c %}
+int estimate_num_insns (gimple *stmt, eni_weights *weights)
+{
+// ...
+    case GIMPLE_ASM:
+      {
+        int count = asm_str_count (gimple_asm_string (as_a <gasm *> (stmt)));
+
+        /* 1000 means infinity. This avoids overflows later
+           with very long asm statements.  */
+
+        if (count > 1000)
+          count = 1000;
+
+        return count;
+      }
+// ...
+}
+{% endhighlight %}
+
+Note that this pattern, of saving data using inline assembly, is not limited to bugs and warnings. The kernel uses it for many additional purposes: exception tables, that gracefully handle an exception that is triggered inside the kernel; alternative instructions table, that tailors the kernel on boot-time to the specific CPU architecture extensions that are supported; annotations that are used for stack metadata validation by objtool and so on.
+
+Before we get to solving this problem, a question needs to be raised: is the current behavior flawed at all? Eventually, the size of the kernel will increase if functions that use WARN(), for example, will be inlined. This increase in size can cause the kernel image to be bigger, and since the Linux kernel cannot be paged out, will also increase memory consumption. However, the main reason that the compiler strives to avoid inflation of the code size is to avoid pressure on the instruction cache, whose impact may offset inlining benefits. Moreover, the heuristics of other compiler optimizations (e.g., loop optimizations) depend on the size of the code.
+
+Solving the problem is not trivial. Ideally, GCC would have used an integrated assembler, similarly to [LLVM][llvm-integrated-asm], which would give better estimation of the generated code size of inline assembly. Experimentally, LLVM seems to make the right inlining decisions and is not affected by new-lines or data that is set in other sections of the executable. Interestingly, it appears to do so even when the integrated assembler is not used for assembly. GCC, however, uses the GNU assembler after the code is compiled, which prevents it from getting a correct estimation of the code size.
+
+Alternatively, the problem could have been solved by overriding GCC's code size estimation through a directive or a built-in function. However, looking at GCC code does not reveal a direct or indirect way to achieve this goal.
+
+One may think that using the always_inline function attribute to force the compiler to inline functions would solve the problem. It appears that some have encountered the problem of poor inlining decisions in the past, without understanding the root-cause and used this solution. However, this solution has several drawbacks. First, it is hard to make and maintain these annotations. Second, this solution does not address other code optimizations the rely on code-size estimation. Third, the kernel uses various configurations and supports multiple CPU architectures, which may require a certain function to be inlined in some setups and not inlined in other. Finally, and most importantly, using always_inline can just push the problem upwards to calling functions, as we will later see.  
+
+Therefore, a more systematic solution is needed. The solution comes in the form of assembly macros that are set to hold the long assembly code, and use a single line inside the inline assembly that calls the macro. This solution does not only improve the generated machine code, but makes the assembly code more readable, as it prevents various quirks that are required in inline assembly, for example new-line characters. Moreover, in certain cases this change allows to consolidate the currently separate implementations that are used in C and assembly, which eases code maintenance.
+
+Addressing the issue shows a performance improvement of tens of cycles for certain system calls, which are indeed not too notable. After addressing these issues, we see copy_overflow() and other functions disappear from the commonly non-inlined inline functions list.
+
+{% highlight console %}
+$ nm --print-size ./vmlinux | grep ' t ' | cut -d' ' -f2- | sort | uniq -c \
+	| grep -v '^      1' | sort -n -r | head -n 5
+
+ Instances  Size               Function Name
+      9     000000000000012f t jhash
+      8     0000000000000011 t kzalloc
+      7     0000000000000017 t dst_output
+      5     000000000000002f t acpi_os_allocate_zeroed
+      5     0000000000000029 t acpi_os_allocate
+{% endhighlight %}
+
+However, we got some new ones. Lets try to understand where do they come from.
+
+## Constant computations and inlining
+
+As shown, kzalloc() is not always inlined, although its code is very simple. 
+
+{% highlight c %}
+static inline void *kzalloc(size_t size, gfp_t flags)
+{
+   return kmalloc(size, flags | __GFP_ZERO);
+}
+{% endhighlight %}
+
+The assembly, again does not provide any answers as to why it is not inlined:
+
+{% highlight objdump %}
+0xffffffff817929e0 <+0>: push   %rbp
+0xffffffff817929e1 <+1>: mov    $0x14080c0,%esi
+0xffffffff817929e6 <+6>: mov    %rsp,%rbp
+0xffffffff817929e9 <+9>: callq  0xffffffff8125d590 <__kmalloc>
+0xffffffff817929ee <+14>: pop    %rbp
+0xffffffff817929ef <+15>: retq   
+{% endhighlight %}
+
+The answer to our question lies in kmalloc(), which is called by kzalloc() and is considered to have many instructions by GCC heuristics. kmalloc() is inlined since it is marked with the always_inline attribute, but its estimated instruction count is then attributed to the calling function, kzalloc() in this case. This result exemplifies why the use of the always_inline attribute is not a sufficient solution for code inlining problem.
+
+Still, it is not clear why GCC estimates that kmalloc() would be compiled into many instructions. As shown, it is compiled into a single call to __kmalloc(). To answer this question, we need to follow kmalloc() code, which eventually uses the ilog2() macro to compute the log2 of an integer, in order to compute the page allocation order.
+
+Here is a and shortened version of ilog2():
+
+{% highlight c %}
+#define ilog2(n)                                \
+(                                               \
+        __builtin_constant_p(n) ? (             \
+        /* Optimized version for constants */   \
+                (n) < 2 ? 0 :                   \
+                (n) & (1ULL << 63) ? 63 :       \
+                (n) & (1ULL << 62) ? 62 :       \
+                /* ... */			\
+                (n) & (1ULL <<  3) ?  3 :       \
+                (n) & (1ULL <<  2) ?  2 :       \
+                1 ) :                           \
+        /* Another version for non-constants */ \
+        (sizeof(n) <= 4) ?                      \
+        __ilog2_u32(n) :                        \
+        __ilog2_u64(n)                          \
+}
+{% endhighlight %}
+
+As shown, the macro first uses the built-in function __builtin_constant_p() to determine whether n is known to be a constant during compilation time. If n is known to be constant, a long series of conditions is evaluated to compute the result during compilation time, which allows further optimizations. Otherwise, if n is not known to be constant, a short code is emitted to compute during runtime the result. Yet, regardless of whether n is constant or not, all of the conditions in the ilog2() macro are evaluated during compilation time and do not translate into any machine code instructions.
+
+However, although the generated code is efficient, it causes GCC, again, to estimate the number of instructions that ilog2() takes incorrectly. Apparently, the number of instructions is estimated before inlining decisions take place, and in this stage the compiler usually still does not know whether n is constant. Later, after inlining decisions are performed, GCC cannot update the instruction count estimation accordingly.
+
+This inlining problem is not as common as the previous one, yet it is not rare. Bit operations (e.g., test_bit()) and bitmaps commonly use __builtin_constant_p() in the described manner. As a result, functions that use these facilities, for example cpumask_weight(), are not inlined.
+
+A possible solution for this problem is to use the built-in __builtin_choose_expr() to test __builtin_constant_p() instead of using C if-conditions and conditional operators (?:) :
+
+{% highlight c %}
+#define ilog2(n) \
+(                                                \
+        __builtin_choose_expr(__builtin_constant_p(n), 	\
+                ((n) < 2 ? 0 :				\
+                (n) & (1ULL << 63) ? 63 : 		\
+                (n) & (1ULL << 62) ? 62 : 		\
+                /* ... */				\
+                (n) & (1ULL <<  3) ?  3 :        	\
+                (n) & (1ULL <<  2) ?  2 :        	\
+                1 )),                            	\
+        (sizeof(n) <= 4) ?                      	\
+        __ilog2_u32(n) :                        	\
+        __ilog2_u64(n)                          	\
+}
+{% endhighlight %}
+
+This built-in is evaluated earlier in the compilation process, before inlining decisions are being made. Yet, there is a catch: as this built-in is evaluated earlier, GCC is only able to determine that an argument is constant for constant expressions, which can cause less efficient code to be generated. For instance, if a constant was given as a function argument, GCC will not be able to determine it is constant. In the following case, for example, the non-constant version will be used:
+
+{% highlight c %}
+int bar(int n) {
+        return ilog2(n)
+}
+
+int foo(int n) {
+        return bar(n);
+}
+
+v = foo(bar(5)); /* will use the non-constant version */
+{% endhighlight %}
+
+It is therefore questionable whether using __builtin_choose_expr() is an appropriate solution. Perhaps it is better to just mark functions such as kzalloc() with the always_inline attribute. Compiling using LLVM reveals, again, that LLVM inlining decisions are not negatively affected by the use of __builtin_constant_p().
+
+## Function attributes 
+
+Finally, there are certain function attributes that affect inlining decision. Using function attributes to set an optimization levels for specific functions can prevent the compiler from inlining the functions or functions that are called by them. The Linux kernel rarely uses such attributes, but one of its uses is in the KVM function [vmx_vcpu_run()][vmx_vcpu_run] which is a very hot function that launches or resumes the virtual machine. The use of the optimization attribute in this function is actually just to prevent cloning of the function. Its side-effect is, however, that all the functions it uses are not inlined, including, for example the function [to_vmx()][to_vmx]:
+
+{% highlight objdump %}
+0x0000000000000150 <+0>: push   %rbp
+0x0000000000000151 <+1>: mov    %rdi,%rax
+0x0000000000000154 <+4>: mov    %rsp,%rbp
+0x0000000000000157 <+7>: pop    %rbp
+0x0000000000000158 <+8>: retq   
+{% endhighlight %}
+
+This function just returns as an output the same argument it got as an input. Not inlining functions that are called by vmx_vcpu_run() induces significant overhead, which can be as high as 10% for a VM-exit.
+
+Finally, the cold function attribute causes inlining to be done less aggressively. This attribute informs the compiler that a function is unlikely to be executed, and the compiler, among other things, optimizes these functions for size rather than speed, which can result in very non-aggressive inlining decisions. All the __init and __exit functions, which are used during the kernel and modules (de)initializations are marked as cold. It is questionable whether this is the desired behavior.
+
+## Conclusions
+
+Despite the fact that C appears to give us great control over the generated code, it is not always the case. Compiler extensions may be needed to give programmers greater control. Tools that analyze whether the generated binary is efficient, considering the source code, may be needed. In the meanwhile, there is no alternative to manual inspection of the generated binary code.
+
+Thanks to Linus Torvalds, Hans Peter Anvin, Masahiro Yamada, Josh Poimboeuf, Peter Zijistra, Kees Cook, Ingo Molnar and others for their assistance in the analysis and in solving this problem.
+
+[ud2]:			https://c9x.me/x86/html/file_module_x86_id_318.html
+[BUG_FLAGS]:		https://elixir.bootlin.com/linux/v4.17/source/arch/x86/include/asm/bug.h#L33
+[llvm-integrated-asm]:	https://www.embecosm.com/appnotes/ean10/ean10-howto-llvmas-1.0.html#idp109760
+[vmx_vcpu_run]:		https://elixir.bootlin.com/linux/v4.17/source/arch/x86/kvm/vmx.c#L9669
+[to_vmx]:		https://elixir.bootlin.com/linux/v4.17/source/arch/x86/kvm/vmx.c#L706
+[extended_asm]:		https://gcc.gnu.org/onlinedocs/gcc/Extended-Asm.html
+[gcc-bulitin]:		https://gcc.gnu.org/onlinedocs/gcc/Other-Builtins.html
+
