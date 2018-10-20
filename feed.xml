@@ -1,0 +1,290 @@
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="3.8.4">Jekyll</generator><link href="https://nadav.amit.zone/feed.xml" rel="self" type="application/atom+xml" /><link href="https://nadav.amit.zone/" rel="alternate" type="text/html" /><updated>2018-10-19T22:14:10-07:00</updated><id>https://nadav.amit.zone/feed.xml</id><title type="html">Nadav Amit</title><subtitle>Fighting Operating Systems</subtitle><entry><title type="html">How new-lines affect the Linux kernel performance</title><link href="https://nadav.amit.zone/linux/2018/10/10/newline.html" rel="alternate" type="text/html" title="How new-lines affect the Linux kernel performance" /><published>2018-10-10T14:52:01-07:00</published><updated>2018-10-10T14:52:01-07:00</updated><id>https://nadav.amit.zone/linux/2018/10/10/newline</id><content type="html" xml:base="https://nadav.amit.zone/linux/2018/10/10/newline.html">&lt;p&gt;The Linux kernel strives to be fast and efficient. As it is written mostly in C, it can mostly control how the generated machine code looks. Nevertheless, as the kernel code is compiled into machine code, the compiler optimizes the generated code to improve its performance. The kernel code, however, employs uncommon coding techniques, which can fail code optimizations. In this blog-post, I would share my experience in analyzing the reasons for poor code inlining of the kernel code. Although the performance improvement are not significant in most cases, understanding these issues are valuable in preventing them from becoming larger. New-lines, as promised, will be one of the reasons, though not the only one.&lt;/p&gt;
+
+&lt;h2 id=&quot;new-lines-in-inline-assembly&quot;&gt;New lines in inline assembly&lt;/h2&gt;
+
+&lt;p&gt;One fine day, I encountered a strange phenomenon: minor changes I performed in the Linux source code, caused small but noticeable performance degradation. As I expected these changes to actually improve performance, I decided to disassemble the functions which I changed. To my surprise, I realized that my change caused functions that were previously inlined, not to be inlined anymore. The decision not to inline these functions seem dubious as they were short.&lt;/p&gt;
+
+&lt;p&gt;I decided to further investigate this issue and to check whether it affects other parts of the kernel. Arguably, it is rather hard to say whether a function should be inlined, so some sort of indication of bad inlining decisions is needed. C functions that are declared with the inline keyword are not bound to be inlined by the compiler, so having a non-inlined function that is marked with the inline keyword is not an indication by itself for bad inlining decision.&lt;/p&gt;
+
+&lt;p&gt;Arguably, there are two simple heuristics to find functions which were suspiciously not inlined for the wrong reason. One heuristic is to look for short (binary-wise) functions by looking at the static symbols. A second heuristic is to look for functions which appear in multiple translation units (objects), as this might indicate they were declared as inline but were eventually not inlined, and that they are in common use. In both cases, there may be valid reasons for the compiler not to inline functions even if they are short, for example if they are used as a value for a function pointer. However, they can give an indication if something is “very wrong” in how inlining is performed, or more correctly, ignored.&lt;/p&gt;
+
+&lt;p&gt;In practice, I used both heuristics, but in this post I will only use the second one to check whether inlining decisions seem dubious. To do so I rebuild the kernel, using the localyesconfig make target to incorporate the modules into the core. I ensure the “kernel hacking” features in the config are off, as those tend to blow the size of the code and rightfully cause functions not to be inlined. I then looked for static function which had the most instances in the built kernel:&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-console&quot; data-lang=&quot;console&quot;&gt;&lt;span&gt;&lt;/span&gt;&lt;span class=&quot;gp&quot;&gt;$&lt;/span&gt; nm --print-size ./vmlinux &lt;span class=&quot;p&quot;&gt;|&lt;/span&gt; grep &lt;span class=&quot;s1&quot;&gt;&amp;#39; t &amp;#39;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;|&lt;/span&gt; cut -d&lt;span class=&quot;s1&quot;&gt;&amp;#39; &amp;#39;&lt;/span&gt; -f2- &lt;span class=&quot;p&quot;&gt;|&lt;/span&gt; sort &lt;span class=&quot;p&quot;&gt;|&lt;/span&gt; uniq -c &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
+	&lt;span class=&quot;p&quot;&gt;|&lt;/span&gt; grep -v &lt;span class=&quot;s1&quot;&gt;&amp;#39;^      1&amp;#39;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;|&lt;/span&gt; sort -n -r &lt;span class=&quot;p&quot;&gt;|&lt;/span&gt; head -n &lt;span class=&quot;m&quot;&gt;5&lt;/span&gt;
+
+&lt;span class=&quot;go&quot;&gt;Instances   Size               Function Name&lt;/span&gt;
+&lt;span class=&quot;go&quot;&gt;     36     0000000000000019 t copy_overflow&lt;/span&gt;
+&lt;span class=&quot;go&quot;&gt;      8     000000000000012f t jhash&lt;/span&gt;
+&lt;span class=&quot;go&quot;&gt;      8     000000000000000d t arch_local_save_flags&lt;/span&gt;
+&lt;span class=&quot;go&quot;&gt;      7     0000000000000017 t dst_output&lt;/span&gt;
+&lt;span class=&quot;go&quot;&gt;      6     000000000000004e t put_page&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;As seen, the results are suspicious. As  mentioned before, in some cases there are good reasons for functions not to be inlined. jhash() is a big function (303 bytes) so it is reasonable for it is not to be inlined. dst_output() address is used as a function pointer, which causes it not to be inlined. Yet the other functions seem to be great candidates for inlining, and it is not clear why they are not inlined. Let’s look at the source code of copy_overflow(), which has many instances in the binary:&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-c&quot; data-lang=&quot;c&quot;&gt;&lt;span&gt;&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;static&lt;/span&gt; &lt;span class=&quot;kr&quot;&gt;inline&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;copy_overflow&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;size&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;unsigned&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;long&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;count&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+      &lt;span class=&quot;n&quot;&gt;WARN&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot;Buffer overflow detected (%d &amp;lt; %lu)!&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\n&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;size&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;count&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;Will the disassembly tell us anything?&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-objdump&quot; data-lang=&quot;objdump&quot;&gt;&lt;span&gt;&lt;/span&gt;&lt;span class=&quot;lineno&quot;&gt;1 &lt;/span&gt;&lt;span class=&quot;x&quot;&gt;0xffffffff819315e0 &amp;lt;+0&amp;gt;: push   %rbp&lt;/span&gt;
+&lt;span class=&quot;lineno&quot;&gt;2 &lt;/span&gt;&lt;span class=&quot;x&quot;&gt;0xffffffff819315e1 &amp;lt;+1&amp;gt;: mov    %rsi,%rdx&lt;/span&gt;
+&lt;span class=&quot;lineno&quot;&gt;3 &lt;/span&gt;&lt;span class=&quot;x&quot;&gt;0xffffffff819315e4 &amp;lt;+4&amp;gt;: mov    %edi,%esi&lt;/span&gt;
+&lt;span class=&quot;lineno&quot;&gt;4 &lt;/span&gt;&lt;span class=&quot;x&quot;&gt;0xffffffff819315e6 &amp;lt;+6&amp;gt;: mov    $0xffffffff820bc4b8,%rdi&lt;/span&gt;
+&lt;span class=&quot;lineno&quot;&gt;5 &lt;/span&gt;&lt;span class=&quot;x&quot;&gt;0xffffffff819315ed &amp;lt;+13&amp;gt;: mov    %rsp,%rbp&lt;/span&gt;
+&lt;span class=&quot;lineno&quot;&gt;6 &lt;/span&gt;&lt;span class=&quot;x&quot;&gt;0xffffffff819315f0 &amp;lt;+16&amp;gt;: callq  0xffffffff81089b70 &amp;lt;__warn_printk&amp;gt;&lt;/span&gt;
+&lt;span class=&quot;lineno&quot;&gt;7 &lt;/span&gt;&lt;span class=&quot;x&quot;&gt;0xffffffff819315f5 &amp;lt;+21&amp;gt;: ud2    &lt;/span&gt;
+&lt;span class=&quot;lineno&quot;&gt;8 &lt;/span&gt;&lt;span class=&quot;x&quot;&gt;0xffffffff819315f7 &amp;lt;+23&amp;gt;: pop    %rbp&lt;/span&gt;
+&lt;span class=&quot;lineno&quot;&gt;9 &lt;/span&gt;&lt;span class=&quot;x&quot;&gt;0xffffffff819315f8 &amp;lt;+24&amp;gt;: retq   &lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;Apparently not. Notice that out of the 9 assembly instructions that are shown above, 6 deal with the function entry and exit - for example, updating the frame pointer, and only the three (in lines 4, 6 and 7) are really needed.&lt;/p&gt;
+
+&lt;p&gt;To understand the problem, we must dig deeper and look at the warning mechanism in Linux. In x86, this mechanism shares the same infrastructure with the bug reporting mechanism. When a bug or a warning are triggered, the kernel prints the filename and the line number in the source-code that triggered the bug, which can then used to analyze the root-cause of the bug. A naive implementation, however, would cause the code-cache to be polluted with the this information as well as the function call to the function that prints the error message, consequently causing performance degradation.&lt;/p&gt;
+
+&lt;p&gt;Linux therefore uses a different scheme by setting an exception triggering instruction (&lt;a href=&quot;https://c9x.me/x86/html/file_module_x86_id_318.html&quot;&gt;ud2&lt;/a&gt; on x86) and saving the warning information in a bug table that is set in a different section in the executable. Once a warning is triggered using the WARN() macro, an exception is triggered and the exception handler looks for the warning information - the source-code filename and line - in the table.&lt;/p&gt;
+
+&lt;p&gt;Inline assembly is used to save this information in &lt;a href=&quot;https://elixir.bootlin.com/linux/v4.17/source/arch/x86/include/asm/bug.h#L33&quot;&gt;_BUG_FLAGS()&lt;/a&gt;. Here is its code after some simplifications to ease readability:&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-c&quot; data-lang=&quot;c&quot;&gt;&lt;span&gt;&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;asm&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;volatile&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;quot;1: ud2&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\n&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;quot;&lt;/span&gt;
+             &lt;span class=&quot;s&quot;&gt;&amp;quot;.pushsection __bug_table,&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\&amp;quot;&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;aw&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\&amp;quot;\n&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;quot;&lt;/span&gt;
+             &lt;span class=&quot;s&quot;&gt;&amp;quot;2: .long 1b - 2b&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\n&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;quot;&lt;/span&gt; &lt;span class=&quot;cm&quot;&gt;/* bug_entry::bug_addr */&lt;/span&gt;
+             &lt;span class=&quot;s&quot;&gt;&amp;quot;   .long %c0 - 2b&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\n&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;quot;&lt;/span&gt; &lt;span class=&quot;cm&quot;&gt;/* bug_entry::file */&lt;/span&gt;
+             &lt;span class=&quot;s&quot;&gt;&amp;quot;   .word %c1&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\n&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;quot;&lt;/span&gt;      &lt;span class=&quot;cm&quot;&gt;/* bug_entry::line */&lt;/span&gt;
+             &lt;span class=&quot;s&quot;&gt;&amp;quot; .word %c2&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\n&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;quot;&lt;/span&gt;   &lt;span class=&quot;cm&quot;&gt;/* bug_entry::flags */&lt;/span&gt;
+             &lt;span class=&quot;s&quot;&gt;&amp;quot; .org 2b+%c3&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\n&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&amp;quot;&lt;/span&gt;
+             &lt;span class=&quot;s&quot;&gt;&amp;quot;.popsection&amp;quot;&lt;/span&gt;
+                 &lt;span class=&quot;o&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot;i&amp;quot;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;__FILE__&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&amp;quot;i&amp;quot;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;__LINE__&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt;
+                     &lt;span class=&quot;s&quot;&gt;&amp;quot;i&amp;quot;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;flags&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt;
+                     &lt;span class=&quot;s&quot;&gt;&amp;quot;i&amp;quot;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;sizeof&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;struct&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;bug_entry&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)));&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;Ignoring the assembly shenanigans that this code uses, we can see that in practice it generates a single ud2 instruction. However, the compiler considers this code to be “big” and consequently oftentimes does not inline functions that use WARN() or similar functions.&lt;/p&gt;
+
+&lt;p&gt;The reason turns to be the newline characters (marked as ‘\n’ above). The kernel compiler, GCC, is unaware to the code size that will be generated by the inline assembly. It therefore tries to estimate its size based on newline characters and statement separators (‘;’ on x86). In GCC, we can see the code that performs this estimation in the estimate_num_insns() function:&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-c&quot; data-lang=&quot;c&quot;&gt;&lt;span&gt;&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;estimate_num_insns&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;gimple&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;stmt&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;eni_weights&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;weights&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;// ...&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;case&lt;/span&gt; &lt;span class=&quot;nl&quot;&gt;GIMPLE_ASM&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
+      &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;count&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;asm_str_count&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;gimple_asm_string&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;as_a&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;gasm&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&amp;gt;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;stmt&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)));&lt;/span&gt;
+
+        &lt;span class=&quot;cm&quot;&gt;/* 1000 means infinity. This avoids overflows later&lt;/span&gt;
+&lt;span class=&quot;cm&quot;&gt;           with very long asm statements.  */&lt;/span&gt;
+
+        &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;count&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1000&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+          &lt;span class=&quot;n&quot;&gt;count&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1000&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+
+        &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;count&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+      &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;// ...&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;Note that this pattern, of saving data using inline assembly, is not limited to bugs and warnings. The kernel uses it for many additional purposes: exception tables, that gracefully handle an exception that is triggered inside the kernel; alternative instructions table, that tailors the kernel on boot-time to the specific CPU architecture extensions that are supported; annotations that are used for stack metadata validation by objtool and so on.&lt;/p&gt;
+
+&lt;p&gt;Before we get to solving this problem, a question needs to be raised: is the current behavior flawed at all? Eventually, the size of the kernel will increase if functions that use WARN(), for example, will be inlined. This increase in size can cause the kernel image to be bigger, and since the Linux kernel cannot be paged out, will also increase memory consumption. However, the main reason that the compiler strives to avoid inflation of the code size is to avoid pressure on the instruction cache, whose impact may offset inlining benefits. Moreover, the heuristics of other compiler optimizations (e.g., loop optimizations) depend on the size of the code.&lt;/p&gt;
+
+&lt;p&gt;Solving the problem is not trivial. Ideally, GCC would have used an integrated assembler, similarly to &lt;a href=&quot;https://www.embecosm.com/appnotes/ean10/ean10-howto-llvmas-1.0.html#idp109760&quot;&gt;LLVM&lt;/a&gt;, which would give better estimation of the generated code size of inline assembly. Experimentally, LLVM seems to make the right inlining decisions and is not affected by new-lines or data that is set in other sections of the executable. Interestingly, it appears to do so even when the integrated assembler is not used for assembly. GCC, however, uses the GNU assembler after the code is compiled, which prevents it from getting a correct estimation of the code size.&lt;/p&gt;
+
+&lt;p&gt;Alternatively, the problem could have been solved by overriding GCC’s code size estimation through a directive or a built-in function. However, looking at GCC code does not reveal a direct or indirect way to achieve this goal.&lt;/p&gt;
+
+&lt;p&gt;One may think that using the always_inline function attribute to force the compiler to inline functions would solve the problem. It appears that some have encountered the problem of poor inlining decisions in the past, without understanding the root-cause and used this solution. However, this solution has several drawbacks. First, it is hard to make and maintain these annotations. Second, this solution does not address other code optimizations the rely on code-size estimation. Third, the kernel uses various configurations and supports multiple CPU architectures, which may require a certain function to be inlined in some setups and not inlined in other. Finally, and most importantly, using always_inline can just push the problem upwards to calling functions, as we will later see.&lt;/p&gt;
+
+&lt;p&gt;Therefore, a more systematic solution is needed. The solution comes in the form of assembly macros that are set to hold the long assembly code, and use a single line inside the inline assembly that calls the macro. This solution does not only improve the generated machine code, but makes the assembly code more readable, as it prevents various quirks that are required in inline assembly, for example new-line characters. Moreover, in certain cases this change allows to consolidate the currently separate implementations that are used in C and assembly, which eases code maintenance.&lt;/p&gt;
+
+&lt;p&gt;Addressing the issue shows a performance improvement of tens of cycles for certain system calls, which are indeed not too notable. After addressing these issues, we see copy_overflow() and other functions disappear from the commonly non-inlined inline functions list.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-console&quot; data-lang=&quot;console&quot;&gt;&lt;span&gt;&lt;/span&gt;&lt;span class=&quot;gp&quot;&gt;$&lt;/span&gt; nm --print-size ./vmlinux &lt;span class=&quot;p&quot;&gt;|&lt;/span&gt; grep &lt;span class=&quot;s1&quot;&gt;&amp;#39; t &amp;#39;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;|&lt;/span&gt; cut -d&lt;span class=&quot;s1&quot;&gt;&amp;#39; &amp;#39;&lt;/span&gt; -f2- &lt;span class=&quot;p&quot;&gt;|&lt;/span&gt; sort &lt;span class=&quot;p&quot;&gt;|&lt;/span&gt; uniq -c &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
+	&lt;span class=&quot;p&quot;&gt;|&lt;/span&gt; grep -v &lt;span class=&quot;s1&quot;&gt;&amp;#39;^      1&amp;#39;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;|&lt;/span&gt; sort -n -r &lt;span class=&quot;p&quot;&gt;|&lt;/span&gt; head -n &lt;span class=&quot;m&quot;&gt;5&lt;/span&gt;
+
+&lt;span class=&quot;go&quot;&gt; Instances  Size               Function Name&lt;/span&gt;
+&lt;span class=&quot;go&quot;&gt;      9     000000000000012f t jhash&lt;/span&gt;
+&lt;span class=&quot;go&quot;&gt;      8     0000000000000011 t kzalloc&lt;/span&gt;
+&lt;span class=&quot;go&quot;&gt;      7     0000000000000017 t dst_output&lt;/span&gt;
+&lt;span class=&quot;go&quot;&gt;      5     000000000000002f t acpi_os_allocate_zeroed&lt;/span&gt;
+&lt;span class=&quot;go&quot;&gt;      5     0000000000000029 t acpi_os_allocate&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;However, we got some new ones. Lets try to understand where do they come from.&lt;/p&gt;
+
+&lt;h2 id=&quot;constant-computations-and-inlining&quot;&gt;Constant computations and inlining&lt;/h2&gt;
+
+&lt;p&gt;As shown, kzalloc() is not always inlined, although its code is very simple.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-c&quot; data-lang=&quot;c&quot;&gt;&lt;span&gt;&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;static&lt;/span&gt; &lt;span class=&quot;kr&quot;&gt;inline&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;kzalloc&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;size_t&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;size&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;gfp_t&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;flags&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+   &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;kmalloc&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;size&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;flags&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;|&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;__GFP_ZERO&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;The assembly, again does not provide any answers as to why it is not inlined:&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-objdump&quot; data-lang=&quot;objdump&quot;&gt;&lt;span&gt;&lt;/span&gt;&lt;span class=&quot;x&quot;&gt;0xffffffff817929e0 &amp;lt;+0&amp;gt;: push   %rbp&lt;/span&gt;
+&lt;span class=&quot;x&quot;&gt;0xffffffff817929e1 &amp;lt;+1&amp;gt;: mov    $0x14080c0,%esi&lt;/span&gt;
+&lt;span class=&quot;x&quot;&gt;0xffffffff817929e6 &amp;lt;+6&amp;gt;: mov    %rsp,%rbp&lt;/span&gt;
+&lt;span class=&quot;x&quot;&gt;0xffffffff817929e9 &amp;lt;+9&amp;gt;: callq  0xffffffff8125d590 &amp;lt;__kmalloc&amp;gt;&lt;/span&gt;
+&lt;span class=&quot;x&quot;&gt;0xffffffff817929ee &amp;lt;+14&amp;gt;: pop    %rbp&lt;/span&gt;
+&lt;span class=&quot;x&quot;&gt;0xffffffff817929ef &amp;lt;+15&amp;gt;: retq   &lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;The answer to our question lies in kmalloc(), which is called by kzalloc() and is considered to have many instructions by GCC heuristics. kmalloc() is inlined since it is marked with the always_inline attribute, but its estimated instruction count is then attributed to the calling function, kzalloc() in this case. This result exemplifies why the use of the always_inline attribute is not a sufficient solution for code inlining problem.&lt;/p&gt;
+
+&lt;p&gt;Still, it is not clear why GCC estimates that kmalloc() would be compiled into many instructions. As shown, it is compiled into a single call to __kmalloc(). To answer this question, we need to follow kmalloc() code, which eventually uses the ilog2() macro to compute the log2 of an integer, in order to compute the page allocation order.&lt;/p&gt;
+
+&lt;p&gt;Here is a and shortened version of ilog2():&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-c&quot; data-lang=&quot;c&quot;&gt;&lt;span&gt;&lt;/span&gt;&lt;span class=&quot;cp&quot;&gt;#define ilog2(n)                                \&lt;/span&gt;
+&lt;span class=&quot;cp&quot;&gt;(                                               \&lt;/span&gt;
+&lt;span class=&quot;cp&quot;&gt;        __builtin_constant_p(n) ? (             \&lt;/span&gt;
+&lt;span class=&quot;cp&quot;&gt;        &lt;/span&gt;&lt;span class=&quot;cm&quot;&gt;/* Optimized version for constants */&lt;/span&gt;&lt;span class=&quot;cp&quot;&gt;   \&lt;/span&gt;
+&lt;span class=&quot;cp&quot;&gt;                (n) &amp;lt; 2 ? 0 :                   \&lt;/span&gt;
+&lt;span class=&quot;cp&quot;&gt;                (n) &amp;amp; (1ULL &amp;lt;&amp;lt; 63) ? 63 :       \&lt;/span&gt;
+&lt;span class=&quot;cp&quot;&gt;                (n) &amp;amp; (1ULL &amp;lt;&amp;lt; 62) ? 62 :       \&lt;/span&gt;
+&lt;span class=&quot;cp&quot;&gt;                &lt;/span&gt;&lt;span class=&quot;cm&quot;&gt;/* ... */&lt;/span&gt;&lt;span class=&quot;cp&quot;&gt;			\&lt;/span&gt;
+&lt;span class=&quot;cp&quot;&gt;                (n) &amp;amp; (1ULL &amp;lt;&amp;lt;  3) ?  3 :       \&lt;/span&gt;
+&lt;span class=&quot;cp&quot;&gt;                (n) &amp;amp; (1ULL &amp;lt;&amp;lt;  2) ?  2 :       \&lt;/span&gt;
+&lt;span class=&quot;cp&quot;&gt;                1 ) :                           \&lt;/span&gt;
+&lt;span class=&quot;cp&quot;&gt;        &lt;/span&gt;&lt;span class=&quot;cm&quot;&gt;/* Another version for non-constants */&lt;/span&gt;&lt;span class=&quot;cp&quot;&gt; \&lt;/span&gt;
+&lt;span class=&quot;cp&quot;&gt;        (sizeof(n) &amp;lt;= 4) ?                      \&lt;/span&gt;
+&lt;span class=&quot;cp&quot;&gt;        __ilog2_u32(n) :                        \&lt;/span&gt;
+&lt;span class=&quot;cp&quot;&gt;        __ilog2_u64(n)                          \&lt;/span&gt;
+&lt;span class=&quot;cp&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;As shown, the macro first uses the built-in function __builtin_constant_p() to determine whether n is known to be a constant during compilation time. If n is known to be constant, a long series of conditions is evaluated to compute the result during compilation time, which allows further optimizations. Otherwise, if n is not known to be constant, a short code is emitted to compute during runtime the result. Yet, regardless of whether n is constant or not, all of the conditions in the ilog2() macro are evaluated during compilation time and do not translate into any machine code instructions.&lt;/p&gt;
+
+&lt;p&gt;However, although the generated code is efficient, it causes GCC, again, to estimate the number of instructions that ilog2() takes incorrectly. Apparently, the number of instructions is estimated before inlining decisions take place, and in this stage the compiler usually still does not know whether n is constant. Later, after inlining decisions are performed, GCC cannot update the instruction count estimation accordingly.&lt;/p&gt;
+
+&lt;p&gt;This inlining problem is not as common as the previous one, yet it is not rare. Bit operations (e.g., test_bit()) and bitmaps commonly use __builtin_constant_p() in the described manner. As a result, functions that use these facilities, for example cpumask_weight(), are not inlined.&lt;/p&gt;
+
+&lt;p&gt;A possible solution for this problem is to use the built-in __builtin_choose_expr() to test __builtin_constant_p() instead of using C if-conditions and conditional operators (?:) :&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-c&quot; data-lang=&quot;c&quot;&gt;&lt;span&gt;&lt;/span&gt;&lt;span class=&quot;cp&quot;&gt;#define ilog2(n) \&lt;/span&gt;
+&lt;span class=&quot;cp&quot;&gt;(                                                \&lt;/span&gt;
+&lt;span class=&quot;cp&quot;&gt;        __builtin_choose_expr(__builtin_constant_p(n), 	\&lt;/span&gt;
+&lt;span class=&quot;cp&quot;&gt;                ((n) &amp;lt; 2 ? 0 :				\&lt;/span&gt;
+&lt;span class=&quot;cp&quot;&gt;                (n) &amp;amp; (1ULL &amp;lt;&amp;lt; 63) ? 63 : 		\&lt;/span&gt;
+&lt;span class=&quot;cp&quot;&gt;                (n) &amp;amp; (1ULL &amp;lt;&amp;lt; 62) ? 62 : 		\&lt;/span&gt;
+&lt;span class=&quot;cp&quot;&gt;                &lt;/span&gt;&lt;span class=&quot;cm&quot;&gt;/* ... */&lt;/span&gt;&lt;span class=&quot;cp&quot;&gt;				\&lt;/span&gt;
+&lt;span class=&quot;cp&quot;&gt;                (n) &amp;amp; (1ULL &amp;lt;&amp;lt;  3) ?  3 :        	\&lt;/span&gt;
+&lt;span class=&quot;cp&quot;&gt;                (n) &amp;amp; (1ULL &amp;lt;&amp;lt;  2) ?  2 :        	\&lt;/span&gt;
+&lt;span class=&quot;cp&quot;&gt;                1 )),                            	\&lt;/span&gt;
+&lt;span class=&quot;cp&quot;&gt;        (sizeof(n) &amp;lt;= 4) ?                      	\&lt;/span&gt;
+&lt;span class=&quot;cp&quot;&gt;        __ilog2_u32(n) :                        	\&lt;/span&gt;
+&lt;span class=&quot;cp&quot;&gt;        __ilog2_u64(n)                          	\&lt;/span&gt;
+&lt;span class=&quot;cp&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;This built-in is evaluated earlier in the compilation process, before inlining decisions are being made. Yet, there is a catch: as this built-in is evaluated earlier, GCC is only able to determine that an argument is constant for constant expressions, which can cause less efficient code to be generated. For instance, if a constant was given as a function argument, GCC will not be able to determine it is constant. In the following case, for example, the non-constant version will be used:&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-c&quot; data-lang=&quot;c&quot;&gt;&lt;span&gt;&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;bar&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;n&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ilog2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;n&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+&lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;foo&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;n&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;bar&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;n&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+&lt;span class=&quot;n&quot;&gt;v&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;foo&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;bar&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;5&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;));&lt;/span&gt; &lt;span class=&quot;cm&quot;&gt;/* will use the non-constant version */&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;It is therefore questionable whether using __builtin_choose_expr() is an appropriate solution. Perhaps it is better to just mark functions such as kzalloc() with the always_inline attribute. Compiling using LLVM reveals, again, that LLVM inlining decisions are not negatively affected by the use of __builtin_constant_p().&lt;/p&gt;
+
+&lt;h2 id=&quot;function-attributes&quot;&gt;Function attributes&lt;/h2&gt;
+
+&lt;p&gt;Finally, there are certain function attributes that affect inlining decision. Using function attributes to set an optimization levels for specific functions can prevent the compiler from inlining the functions or functions that are called by them. The Linux kernel rarely uses such attributes, but one of its uses is in the KVM function &lt;a href=&quot;https://elixir.bootlin.com/linux/v4.17/source/arch/x86/kvm/vmx.c#L9669&quot;&gt;vmx_vcpu_run()&lt;/a&gt; which is a very hot function that launches or resumes the virtual machine. The use of the optimization attribute in this function is actually just to prevent cloning of the function. Its side-effect is, however, that all the functions it uses are not inlined, including, for example the function &lt;a href=&quot;https://elixir.bootlin.com/linux/v4.17/source/arch/x86/kvm/vmx.c#L706&quot;&gt;to_vmx()&lt;/a&gt;:&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-objdump&quot; data-lang=&quot;objdump&quot;&gt;&lt;span&gt;&lt;/span&gt;&lt;span class=&quot;x&quot;&gt;0x0000000000000150 &amp;lt;+0&amp;gt;: push   %rbp&lt;/span&gt;
+&lt;span class=&quot;x&quot;&gt;0x0000000000000151 &amp;lt;+1&amp;gt;: mov    %rdi,%rax&lt;/span&gt;
+&lt;span class=&quot;x&quot;&gt;0x0000000000000154 &amp;lt;+4&amp;gt;: mov    %rsp,%rbp&lt;/span&gt;
+&lt;span class=&quot;x&quot;&gt;0x0000000000000157 &amp;lt;+7&amp;gt;: pop    %rbp&lt;/span&gt;
+&lt;span class=&quot;x&quot;&gt;0x0000000000000158 &amp;lt;+8&amp;gt;: retq   &lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;This function just returns as an output the same argument it got as an input. Not inlining functions that are called by vmx_vcpu_run() induces significant overhead, which can be as high as 10% for a VM-exit.&lt;/p&gt;
+
+&lt;p&gt;Finally, the cold function attribute causes inlining to be done less aggressively. This attribute informs the compiler that a function is unlikely to be executed, and the compiler, among other things, optimizes these functions for size rather than speed, which can result in very non-aggressive inlining decisions. All the __init and __exit functions, which are used during the kernel and modules (de)initializations are marked as cold. It is questionable whether this is the desired behavior.&lt;/p&gt;
+
+&lt;h2 id=&quot;conclusions&quot;&gt;Conclusions&lt;/h2&gt;
+
+&lt;p&gt;Despite the fact that C appears to give us great control over the generated code, it is not always the case. Compiler extensions may be needed to give programmers greater control. Tools that analyze whether the generated binary is efficient, considering the source code, may be needed. In the meanwhile, there is no alternative to manual inspection of the generated binary code.&lt;/p&gt;
+
+&lt;p&gt;Thanks to Linus Torvalds, Hans Peter Anvin, Masahiro Yamada, Josh Poimboeuf, Peter Zijistra, Kees Cook, Ingo Molnar and others for their assistance in the analysis and in solving this problem.&lt;/p&gt;</content><author><name></name></author><summary type="html">The Linux kernel strives to be fast and efficient. As it is written mostly in C, it can mostly control how the generated machine code looks. Nevertheless, as the kernel code is compiled into machine code, the compiler optimizes the generated code to improve its performance. The kernel code, however, employs uncommon coding techniques, which can fail code optimizations. In this blog-post, I would share my experience in analyzing the reasons for poor code inlining of the kernel code. Although the performance improvement are not significant in most cases, understanding these issues are valuable in preventing them from becoming larger. New-lines, as promised, will be one of the reasons, though not the only one.</summary></entry><entry><title type="html">Can you break Windows Page Table Isolation?</title><link href="https://nadav.amit.zone/windows/2018/09/15/windows-pti.html" rel="alternate" type="text/html" title="Can you break Windows Page Table Isolation?" /><published>2018-09-15T14:52:01-07:00</published><updated>2018-09-15T14:52:01-07:00</updated><id>https://nadav.amit.zone/windows/2018/09/15/windows-pti</id><content type="html" xml:base="https://nadav.amit.zone/windows/2018/09/15/windows-pti.html">&lt;p&gt;The Meltdown and L1TF attacks proved that Intel CPUs are susceptible for attacks that use speculative execution to leak data from the kernel address-space. The root-cause for both of these attacks is the ability of unprivileged code to read speculatively data even if the  page-table permissions should prevent the access. To address this security vulnerability Page Table Isolation (PTI) has been introduced by all common OSes. When PTI is used, a different set of page-tables is used when user-space run.&lt;/p&gt;
+
+&lt;p&gt;The key for PTI to be effective is that it only allows an access to minimal set of privileged pages, whose content can be leaked. These pages include memory that holds various privileged architectural data-structures, for example the Global Descriptor Table (GDT), and privileged trampoline code. This trampoline code runs when a system call, interrupt or exception are invoked, and switches to the kernel page-table hierarchy, for the kernel to be able to handle this event.&lt;/p&gt;
+
+&lt;p&gt;Is PTI implemented correctly? Well, in Linux, PTI implementation is open for review, reasonable, and is easy to audit . Microsoft provides a lot of information about the implementation of PTI in their system, but the code is obviously not open for review. Out of curiosity, I decided to check Windows 10. Using KVM and a  simple script, I dumped pages which are mapped as supervisor pages in the userspace. The results were surprising:&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;&lt;span&gt;&lt;/span&gt;$ sudo ./pti_test.py --socket ~/vm-images/qmp-sock
+
+kernel frames: &lt;span class=&quot;m&quot;&gt;124&lt;/span&gt;
+page tables accessible by the user: &lt;span class=&quot;m&quot;&gt;0&lt;/span&gt;
+page tables accessible by the kernel: &lt;span class=&quot;m&quot;&gt;115&lt;/span&gt;
+writable page tables: &lt;span class=&quot;m&quot;&gt;115&lt;/span&gt;
+page tables: &lt;span class=&quot;m&quot;&gt;115&lt;/span&gt;
+global kernel frames: &lt;span class=&quot;m&quot;&gt;9&lt;/span&gt;
+kernel w+x: &lt;span class=&quot;m&quot;&gt;118&lt;/span&gt;
+kernel/user aliases: &lt;span class=&quot;m&quot;&gt;0&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;This results surprised me for two reasons. First, Windows 10 does not implement &lt;a href=&quot;https://en.wikipedia.org/wiki/W%5EX&quot;&gt;W^X&lt;/a&gt;, and maps pages which are both executable and writable even in the user page-tables. Inspecting the content of these pages shows that at least some of them are guaranteed not to hold code, and should have been marked as non-executable in the page-tables. I contacted Microsoft which claimed that this is intended since “in some cases the kernel is mapped with large pages” and that this can be prevented by enabling &lt;a href=&quot;https://docs.microsoft.com/en-us/windows/security/threat-protection/windows-defender-exploit-guard/enable-virtualization-based-protection-of-code-integrity&quot;&gt;virtualization based protection (VBS)&lt;/a&gt;. However, dumping the page-tables (you can use the attached script), shows that no huge-pages were used, at least in my experiment, and still pages were mapped as writable and executable. VBS is not commonly used, and it might induce significant performance overheads, especially when Windows is being run inside a virtual-machine.&lt;/p&gt;
+
+&lt;p&gt;The second issue is that the page-tables themselves are mapped in the guest page-tables. Actually, Microsoft previously had a bug in which these page-tables could also be modified by userspace applications (in some Windows version). This obviously was a terrible &lt;a href=&quot;https://www.bleepingcomputer.com/news/microsoft/meltdown-patch-opened-bigger-security-hole-on-windows-7/&quot;&gt;security vulnerability&lt;/a&gt;, since userspace applications could have established page-table entries that would allow them to access (read or write) any piece of memory. Today, they keep being mapped as writable, but only accessible by privileged code. Microsoft, again, claimed that this is necessary. I cannot understand why - Linux, for example, does not need to do so.&lt;/p&gt;
+
+&lt;p&gt;Can anyone exploit these behavior? Well, besides the fact that the lack of W^X ease fully compromising a system when another security vulnerability is found, Windows behavior might potentially enable more Meltdown-like attacks. As shown by the Meltdown and L1TF vulnerabilities, Intel CPUs defer at least some PTE validity and permission checks and still uses them during speculative execution. Mapping as few pages as possible in the userspace page-tables is necessary for good Meltdown mitigation as Microsoft itself &lt;a href=&quot;https://blogs.technet.microsoft.com/srd/2018/03/23/kva-shadow-mitigating-meltdown-on-windows/&quot;&gt;acknowledges&lt;/a&gt;. If one can somehow speculatively inject code or modify the page tables or the executable code, and use the modified versions, this would cause a security vulnerability.&lt;/p&gt;
+
+&lt;p&gt;Still, it is not clear whether it actually poses a security vulnerability. Initially, I thought that mapping the page-tables might be exploited by running a speculatively-executed code that sets page-table entries that grant userspace code access to privileged data, and then reads the data and leaks it. However, this is unlikely to work. Accessing data can only be done after the page-table entry is cached in the translation lookaside buffer (TLB), and the TLB should not be able to hold entries whose content is based on speculative execution. If TLB entries would have been set based on speculative execution results, this would cause correctness issues.&lt;/p&gt;
+
+&lt;p&gt;Feel free to use my silly script (through this &lt;a href=&quot;/downloads/pti_test.py&quot;&gt;link&lt;/a&gt;)  and let me know what you think. And if you are a security researcher, it might be worthy to have a look at Windows Spectre v2 mitigations. As I noted before, performance counters indicate that there are indirect branches inside Windows kernel, which might not be safe if Windows relies solely on retpolines for Spectre v2.&lt;/p&gt;</content><author><name></name></author><summary type="html">The Meltdown and L1TF attacks proved that Intel CPUs are susceptible for attacks that use speculative execution to leak data from the kernel address-space. The root-cause for both of these attacks is the ability of unprivileged code to read speculatively data even if the page-table permissions should prevent the access. To address this security vulnerability Page Table Isolation (PTI) has been introduced by all common OSes. When PTI is used, a different set of page-tables is used when user-space run.</summary></entry><entry><title type="html">roundup() vs round_up()</title><link href="https://nadav.amit.zone/linux/2018/09/01/roundup.html" rel="alternate" type="text/html" title="roundup() vs round_up()" /><published>2018-09-01T14:52:01-07:00</published><updated>2018-09-01T14:52:01-07:00</updated><id>https://nadav.amit.zone/linux/2018/09/01/roundup</id><content type="html" xml:base="https://nadav.amit.zone/linux/2018/09/01/roundup.html">&lt;p&gt;Occasionally, you make a mistake that makes you think that surely others have made a similar one.&lt;/p&gt;
+
+&lt;p&gt;Such case happened to me one day when I was trying, in Linux, to round up a number (x) into a multiple of another number (y). The Linux kernel provides two macros for such an operation:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;a href=&quot;https://elixir.bootlin.com/linux/v4.17/source/include/linux/kernel.h#L87&quot;&gt;round_up(x, y)&lt;/a&gt; which only works when y is a power of 2, as it does the rounding using bit operations for efficiency. If y is not a power of 2, it quietly returns the wrong result.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;a href=&quot;https://elixir.bootlin.com/linux/v4.17/source/include/linux/kernel.h#L113&quot;&gt;roundup(x, y)&lt;/a&gt; which works for any value of y.&lt;/p&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Yes, this is not a typo. One macro is named round_up() and the other roundup(). Both macros are defined in the same file (kernel.h), so their developers  should have known that there are similarly named macros. They are not defined, however, next to each other and there is no comment in the code to explain the difference between the two, so it is very easy for a developer to use the wrong macro. There is also no assertion to ensure that y is a power of 2 in round_up(), and unfortunately, adding such an assertion is not as simple as adding a single line, since the macro is also used to define the size of some arrays.&lt;/p&gt;
+
+&lt;p&gt;Both macros are widely used (~500 times each), which made me suspect that in some cases round_up() might have been used inappropriately (i.e., when y is not a power of 2). Out of curiosity, I added a static assertion just for the cases in which y is known to be constant in compilation time. Immediately, two bugs were found, one in a &lt;a href=&quot;https://lore.kernel.org/patchwork/patch/913171/&quot;&gt;GPIO driver&lt;/a&gt; and a second one in the &lt;a href=&quot;https://patchwork.kernel.org/patch/10447343/&quot;&gt;USB video class driver&lt;/a&gt;. The impact of these bugs is not clear. There might actually be more bugs in cases where y is not known during compilation time or when a different kernel configuration is used.&lt;/p&gt;
+
+&lt;p&gt;A less lazy person would have written a &lt;a href=&quot;http://coccinelle.lip6.fr/&quot;&gt;Coccinelle&lt;/a&gt; script to rename one of the functions and to add the required assertions, but making such tree-wide changes is a time consuming task. I have just submitted patches to fix the issues I found.&lt;/p&gt;
+
+&lt;p&gt;People can take different lessons from this story. Personally, it just made me think: how many more silly bugs exist that can easily be prevented by adding simple assertions?&lt;/p&gt;</content><author><name></name></author><summary type="html">Occasionally, you make a mistake that makes you think that surely others have made a similar one.</summary></entry><entry><title type="html">Are you protected against Spectre &amp;amp; Meltdown? Probably not</title><link href="https://nadav.amit.zone/linux/2018/08/01/spectrev2-protection.html" rel="alternate" type="text/html" title="Are you protected against Spectre &amp; Meltdown? Probably not" /><published>2018-08-01T14:52:01-07:00</published><updated>2018-08-01T14:52:01-07:00</updated><id>https://nadav.amit.zone/linux/2018/08/01/spectrev2-protection</id><content type="html" xml:base="https://nadav.amit.zone/linux/2018/08/01/spectrev2-protection.html">&lt;p&gt;Several months ago, everybody was surprised to find out that the CPU speculative execution can be exploited to leak privileged information, using attacks that were named Spectre and Meltdown. Technical blogs and even the main-stream media reported broadly about those vulnerabilities. CPU vendors have struggled to provide firmware patches that would prevent the attacks in a timely manner. OS and other software providers introduced software solutions such as the &lt;a href=&quot;https://software.intel.com/security-software-guidance/api-app/sites/default/files/Retpoline-A-Branch-Target-Injection-Mitigation.pdf&quot;&gt;retpoline&lt;/a&gt; and page table isolation (PTI) to protect against these vulnerabilities. All of these mitigations caused performance degradation, required extensive engineering effort, and caused various &lt;a href=&quot;https://www.darkreading.com/risk/microsoft-issues-emergency-patch-to-disable-intels-broken-spectre-fix/d/d-id/1330932&quot;&gt;problems&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;So half a year later - are you protected? Probably not. Recently I found that the Linux protection against Spectre v2 is broken in virtual machines and Dave Hansen found a bug in the &lt;a href=&quot;https://www.darkreading.com/risk/microsoft-issues-emergency-patch-to-disable-intels-broken-spectre-fix/d/d-id/1330932&quot;&gt;Meltdown&lt;/a&gt; protection. Spectre v1 was never considered fully resolved, with mitigations keep coming in, but even the existing ones were found to be &lt;a href=&quot;https://www.spinics.net/lists/linux-tip-commits/msg44433.html&quot;&gt;buggy&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;There is clearly a problem, as currently it is hard for people to easily realize whether they are protected against these attacks. Sure, one can see whether the OS or other piece of software reports that it is protected, but these reports might be wrong. There is a fundamental problem with these protections that, in a way, is the same one that caused Linus Torvalds to politely (yes, politely) &lt;a href=&quot;https://lkml.org/lkml/2018/2/15/1378&quot;&gt;decline&lt;/a&gt; a Meltdown mitigation technique we proposed&lt;sup id=&quot;fnref:1&quot;&gt;&lt;a href=&quot;#fn:1&quot; class=&quot;footnote&quot;&gt;1&lt;/a&gt;&lt;/sup&gt;:&lt;/p&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;Sure, I can see it working, but it’s some really shady stuff, and now the scheduler needs to save/restore/check one more subtle bit.&lt;/p&gt;
+
+  &lt;p&gt;And if you get it wrong, things will happily work, except you’ve now defeated PTI. But you’ll never notice, because you won’t be testing for it, and the only people who will are the black hats.&lt;/p&gt;
+
+  &lt;p&gt;This is exactly the “security depends on it being in sync” thing that makes me go “eww” about the whole model. Get one thing wrong, and you’ll blow all the PTI code out of the water.&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;Linus criticism of our work is valid, yet it does not seem that other protection mechanisms against these vulnerabilities are much better. And even if the OS is well-protected against these vulnerabilities, nobody guarantees that the system will remain safe after an out-of-tree module is loaded, for example. All it takes for the Spectre v2 protection to be broken, for example, is a single indirect branch that was not converted into a retpoline.&lt;/p&gt;
+
+&lt;p&gt;It seems that in order to make the protection work, independent tools that validate the protection mechanisms are needed. I found the Spectre v2 by using the hardware performance counters to count indirect branches that were executed by the kernel and finding it is not zero. Dumping the page-tables and tracing translation-lookaside buffer (TLB) invalidations can be used to find out PTI bugs. Anti-malware tools should take up the glove and make these checks.&lt;/p&gt;
+
+&lt;p&gt;Yet, perhaps there is an additional problem of over-hyping Spectre. Side-channel attacks were known long before Spectre, and invoking them using speculative execution may not be such a game-changer. Unlike Meltdown, which is a real CPU bug, the Spectre family of vulnerabilities may pose lower risk as they are not easily exploitable. The Spectre v2 proof-of-concept exploited some Linux wrongdoings (e.g., not zeroing registers after a context switch from a virtual machine), which were relatively easily fixed and became a good mitigation against other OS bugs. Some new Spectre attacks were not even reported to be successfully exploitable other than in artificial &lt;a href=&quot;https://bugs.chromium.org/p/project-zero/issues/detail?id=1528&quot;&gt;demos&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;It might be that the industry over-reacted to Spectre. Even if Spectre vulnerabilities are addressed, software might still leak privileged data through side-channels, so it is not as if the existing protection schemes are complete. Now that the media frenzy is gone, perhaps it is time to reconsider whether paying in performance for questionable “generic” protection schemes against these attacks makes sense, or whether protection should be done on a case-by-case basis.&lt;/p&gt;
+
+&lt;p&gt;Update: I wonder if Windows is indeed safe. Windows uses retpoline, but it is not clear whether they are used exclusively or with alternative solutions that use hardware mitigation (IBPB/IBRS). Anyhow, measuring the performance counter of Windows 10 (that runs in the VM) raises some questions, as it show there are indirect branches inside Windows kernel. Here are the performance counters as measure in a KVM guest:&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;&lt;span&gt;&lt;/span&gt;$ sudo perf stat -e br_inst_exec.taken_indirect_jump_non_call_ret:Gk &lt;span class=&quot;se&quot;&gt;\&lt;/span&gt;
+  -e br_inst_exec.taken_indirect_near_call:Gk -a -- sleep &lt;span class=&quot;m&quot;&gt;5&lt;/span&gt;
+ 
+ Performance counter stats &lt;span class=&quot;k&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&amp;#39;system wide&amp;#39;&lt;/span&gt;:
+
+         &lt;span class=&quot;m&quot;&gt;1&lt;/span&gt;,682,939      br_inst_exec.taken_indirect_jump_non_call_ret:Gk
+         &lt;span class=&quot;m&quot;&gt;1&lt;/span&gt;,102,037      br_inst_exec.taken_indirect_near_call:Gk
+
+       &lt;span class=&quot;m&quot;&gt;5&lt;/span&gt;.001077704 seconds &lt;span class=&quot;nb&quot;&gt;time&lt;/span&gt; elapsed&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;div class=&quot;footnotes&quot;&gt;
+  &lt;ol&gt;
+    &lt;li id=&quot;fn:1&quot;&gt;
+      &lt;p&gt;Based on work with Michael Wei and Dan Tsafrir (who may not share my views) &lt;a href=&quot;#fnref:1&quot; class=&quot;reversefootnote&quot;&gt;&amp;#8617;&lt;/a&gt;&lt;/p&gt;
+    &lt;/li&gt;
+  &lt;/ol&gt;
+&lt;/div&gt;</content><author><name></name></author><summary type="html">Several months ago, everybody was surprised to find out that the CPU speculative execution can be exploited to leak privileged information, using attacks that were named Spectre and Meltdown. Technical blogs and even the main-stream media reported broadly about those vulnerabilities. CPU vendors have struggled to provide firmware patches that would prevent the attacks in a timely manner. OS and other software providers introduced software solutions such as the retpoline and page table isolation (PTI) to protect against these vulnerabilities. All of these mitigations caused performance degradation, required extensive engineering effort, and caused various problems.</summary></entry></feed>
