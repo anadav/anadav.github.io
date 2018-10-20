@@ -41,6 +41,7 @@ plugins:
   - jekyll-scholar
   - jekyll-redirect-from
   - jekyll-assets
+  - jekyll-sitemap
 
 assets:
         dirname: assets
