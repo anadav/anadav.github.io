@@ -9,15 +9,15 @@
 <meta property="og:locale" content="en_US" />
 <meta name="description" content="The Meltdown and L1TF attacks proved that Intel CPUs are susceptible for attacks that use speculative execution to leak data from the kernel address-space. The root-cause for both of these attacks is the ability of unprivileged code to read speculatively data even if the page-table permissions should prevent the access. To address this security vulnerability Page Table Isolation (PTI) has been introduced by all common OSes. When PTI is used, a different set of page-tables is used when user-space run." />
 <meta property="og:description" content="The Meltdown and L1TF attacks proved that Intel CPUs are susceptible for attacks that use speculative execution to leak data from the kernel address-space. The root-cause for both of these attacks is the ability of unprivileged code to read speculatively data even if the page-table permissions should prevent the access. To address this security vulnerability Page Table Isolation (PTI) has been introduced by all common OSes. When PTI is used, a different set of page-tables is used when user-space run." />
-<link rel="canonical" href="https://nadav.amit.zone/windows/2018/09/15/windows-pti.html" />
-<meta property="og:url" content="https://nadav.amit.zone/windows/2018/09/15/windows-pti.html" />
+<link rel="canonical" href="http://localhost:4000/windows/2018/09/15/windows-pti.html" />
+<meta property="og:url" content="http://localhost:4000/windows/2018/09/15/windows-pti.html" />
 <meta property="og:site_name" content="Nadav Amit" />
 <meta property="og:type" content="article" />
 <meta property="article:published_time" content="2018-09-15T14:52:01-07:00" />
 <script type="application/ld+json">
-{"url":"https://nadav.amit.zone/windows/2018/09/15/windows-pti.html","headline":"Can you break Windows Page Table Isolation?","dateModified":"2018-09-15T14:52:01-07:00","datePublished":"2018-09-15T14:52:01-07:00","mainEntityOfPage":{"@type":"WebPage","@id":"https://nadav.amit.zone/windows/2018/09/15/windows-pti.html"},"description":"The Meltdown and L1TF attacks proved that Intel CPUs are susceptible for attacks that use speculative execution to leak data from the kernel address-space. The root-cause for both of these attacks is the ability of unprivileged code to read speculatively data even if the page-table permissions should prevent the access. To address this security vulnerability Page Table Isolation (PTI) has been introduced by all common OSes. When PTI is used, a different set of page-tables is used when user-space run.","@type":"BlogPosting","@context":"http://schema.org"}</script>
+{"url":"http://localhost:4000/windows/2018/09/15/windows-pti.html","headline":"Can you break Windows Page Table Isolation?","dateModified":"2018-09-15T14:52:01-07:00","datePublished":"2018-09-15T14:52:01-07:00","description":"The Meltdown and L1TF attacks proved that Intel CPUs are susceptible for attacks that use speculative execution to leak data from the kernel address-space. The root-cause for both of these attacks is the ability of unprivileged code to read speculatively data even if the page-table permissions should prevent the access. To address this security vulnerability Page Table Isolation (PTI) has been introduced by all common OSes. When PTI is used, a different set of page-tables is used when user-space run.","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/windows/2018/09/15/windows-pti.html"},"@type":"BlogPosting","@context":"http://schema.org"}</script>
 <!-- End Jekyll SEO tag -->
-<link rel="stylesheet" href="/assets/main.css"><link type="application/atom+xml" rel="alternate" href="https://nadav.amit.zone/feed.xml" title="Nadav Amit" /></head>
+<link rel="stylesheet" href="/assets/main.css"><link type="application/atom+xml" rel="alternate" href="http://localhost:4000/feed.xml" title="Nadav Amit" /></head>
 <body><header class="site-header" role="banner">
    <div class="wrapper"><a class="site-title" rel="author" href="/">Nadav Amit</a><nav class="site-nav">
         <input type="checkbox" id="nav-trigger" class="nav-trigger" />
@@ -42,7 +42,17 @@
     
   
     
+  
+    
+  
+    
+  
+    
     	<a class="page-link" href="/references.html">Publications</a>
+    
+  
+    
+    	<a class="page-link" href="/blog/references.html">Publications</a>
     
   
     
@@ -101,6 +111,14 @@
   
     
     	<a class="page-link" href="/contact.html">Contact</a>
+    
+  
+    
+    	<a class="page-link" href="/blog/contact.html">Contact</a>
+    
+  
+    
+    	<a class="page-link" href="/about/">Service</a>
     
   
     
