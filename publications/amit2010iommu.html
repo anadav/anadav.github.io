@@ -2,9 +2,9 @@
 <html lang="en"><head>
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1"><!-- Begin Jekyll SEO tag v2.5.0 -->
+  <meta name="viewport" content="width=device-width, initial-scale=1"><!-- Begin Jekyll SEO tag v2.6.0 -->
 <title>IOMMU: Strategies for mitigating the IOTLB bottleneck | Nadav Amit</title>
-<meta name="generator" content="Jekyll v3.8.4" />
+<meta name="generator" content="Jekyll v3.8.5" />
 <meta property="og:title" content="IOMMU: Strategies for mitigating the IOTLB bottleneck" />
 <meta property="og:locale" content="en_US" />
 <meta name="description" content="Fighting Operating Systems" />
@@ -13,7 +13,7 @@
 <meta property="og:url" content="http://localhost:4000/publications/amit2010iommu.html" />
 <meta property="og:site_name" content="Nadav Amit" />
 <script type="application/ld+json">
-{"description":"Fighting Operating Systems","@type":"WebPage","url":"http://localhost:4000/publications/amit2010iommu.html","headline":"IOMMU: Strategies for mitigating the IOTLB bottleneck","@context":"http://schema.org"}</script>
+{"url":"http://localhost:4000/publications/amit2010iommu.html","description":"Fighting Operating Systems","@type":"WebPage","headline":"IOMMU: Strategies for mitigating the IOTLB bottleneck","@context":"https://schema.org"}</script>
 <!-- End Jekyll SEO tag -->
 <link rel="stylesheet" href="/assets/main.css"><link type="application/atom+xml" rel="alternate" href="http://localhost:4000/feed.xml" title="Nadav Amit" /></head>
 <body><header class="site-header" role="banner">
@@ -40,7 +40,11 @@
     
   
     
+  
+    
     	<a class="page-link" href="/references.html">Publications</a>
+    
+  
     
   
     
@@ -126,10 +130,29 @@
 
 
 
+
 <p>
 The input/output memory management unit (IOMMU) was recently introduced into mainstream computer architecture when both Intel and AMD added IOMMUs to their chip-sets. An IOMMU provides memory protection from I/O devices by enabling system software to control which areas of physical memory an I/O device may access. However, this protection incurs additional direct memory access (DMA) overhead due to the required address resolution and validation. IOMMUs include an input/output translation lookaside buffer (IOTLB) to speed-up address resolution, but still every IOTLB cache-miss causes a substantial increase in DMA latency and performance degradation of DMA-intensive workloads. In this paper we first demonstrate the potential negative impact of IOTLB cachemisses on workload performance. We then propose both system software and hardware enhancements to reduce IOTLB miss rate and accelerate address resolution. These enhancements can lead to a reduction of over 60% in IOTLB miss-rate for common I/O intensive workload.
 </p>
 
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
 
     
 
@@ -191,9 +214,181 @@ The input/output memory management unit (IOMMU) was recently introduced into mai
 
     
 
+    
+
+    
+
+    
+
+
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
 
+    
+
+    
+
+    
 
     
+
+    
+
+    
+
+
 
     
 
@@ -251,7 +446,9 @@ The input/output memory management unit (IOMMU) was recently introduced into mai
 
     
 
+    
 
+    
 
     
 
@@ -274,7 +471,9 @@ The input/output memory management unit (IOMMU) was recently introduced into mai
     
 
     
+
 
+
     
 
     
@@ -311,7 +510,9 @@ The input/output memory management unit (IOMMU) was recently introduced into mai
 
     
 
+    
 
+    
 
     
 
@@ -355,6 +556,8 @@ The input/output memory management unit (IOMMU) was recently introduced into mai
 
     
 
+
+
     
 
     
@@ -371,7 +574,9 @@ The input/output memory management unit (IOMMU) was recently introduced into mai
 
     
 
+    
 
+    
 
     
 
@@ -431,7 +636,9 @@ The input/output memory management unit (IOMMU) was recently introduced into mai
 
     
 
+    
 
+    
 
 
   </div>

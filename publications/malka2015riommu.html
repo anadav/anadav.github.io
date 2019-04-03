@@ -2,9 +2,9 @@
 <html lang="en"><head>
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1"><!-- Begin Jekyll SEO tag v2.5.0 -->
+  <meta name="viewport" content="width=device-width, initial-scale=1"><!-- Begin Jekyll SEO tag v2.6.0 -->
 <title>rIOMMU: Efficient IOMMU for I/O Devices that Employ Ring Buffers | Nadav Amit</title>
-<meta name="generator" content="Jekyll v3.8.4" />
+<meta name="generator" content="Jekyll v3.8.5" />
 <meta property="og:title" content="rIOMMU: Efficient IOMMU for I/O Devices that Employ Ring Buffers" />
 <meta property="og:locale" content="en_US" />
 <meta name="description" content="Fighting Operating Systems" />
@@ -13,7 +13,7 @@
 <meta property="og:url" content="http://localhost:4000/publications/malka2015riommu.html" />
 <meta property="og:site_name" content="Nadav Amit" />
 <script type="application/ld+json">
-{"description":"Fighting Operating Systems","@type":"WebPage","url":"http://localhost:4000/publications/malka2015riommu.html","headline":"rIOMMU: Efficient IOMMU for I/O Devices that Employ Ring Buffers","@context":"http://schema.org"}</script>
+{"url":"http://localhost:4000/publications/malka2015riommu.html","description":"Fighting Operating Systems","@type":"WebPage","headline":"rIOMMU: Efficient IOMMU for I/O Devices that Employ Ring Buffers","@context":"https://schema.org"}</script>
 <!-- End Jekyll SEO tag -->
 <link rel="stylesheet" href="/assets/main.css"><link type="application/atom+xml" rel="alternate" href="http://localhost:4000/feed.xml" title="Nadav Amit" /></head>
 <body><header class="site-header" role="banner">
@@ -40,7 +40,11 @@
     
   
     
+  
+    
     	<a class="page-link" href="/references.html">Publications</a>
+    
+  
     
   
     
@@ -126,12 +130,33 @@
 
 
 
+
 <p>
 The IOMMU allows the OS to encapsulate I/O devices in their own virtual memory spaces, thus restricting their DMAs to specific memory pages. The OS uses the IOMMU to protect itself against buggy drivers and malicious/errant devices. But the added protection comes at a cost, degrading the throughput of I/O-intensive workloads by up to an order of magnitude. This cost has motivated system designers to trade off some safety for performance, e.g., by leaving stale information in the IOTLB for a while so as to amortize costly invalidations. 
 
 We observe that high-bandwidth devicesâ€“-like network and PCIe SSD controllersâ€“-interact with the OS via circular ring buffers that that induce a sequential, predictable workload. We design a ring IOMMU (rIOMMU) that leverages this characteristic by replacing the virtual memory page table hierarchy with a circular, flat table. A flat table is adequately supported by exactly one IOTLB entry, making every new translation an implicit invalidation of the former and thus requiring explicit invalidations only at the end of I/O bursts. Using standard networking benchmarks, we show that rIOMMU provides up to 7.56x higher throughput relative to the baseline IOMMU, and that it is within 0.77â€“1.00x the throughput of a system without IOMMU protection.
 </p>
 
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
 
     
 
@@ -193,7 +218,143 @@ We observe that high-bandwidth devicesâ€“-like network and PCIe SSD controllersâ
 
     
 
+    
+
+    
+
+
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+
+
+    
 
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
 
     
 
@@ -229,6 +390,40 @@ We observe that high-bandwidth devicesâ€“-like network and PCIe SSD controllersâ
 
     
 
+
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
     
 
     
@@ -253,7 +448,9 @@ We observe that high-bandwidth devicesâ€“-like network and PCIe SSD controllersâ
 
     
 
+    
 
+    
 
     
 
@@ -276,7 +473,9 @@ We observe that high-bandwidth devicesâ€“-like network and PCIe SSD controllersâ
     
 
     
+
 
+
     
 
     
@@ -313,7 +512,9 @@ We observe that high-bandwidth devicesâ€“-like network and PCIe SSD controllersâ
 
     
 
+    
 
+    
 
     
 
@@ -357,6 +558,8 @@ We observe that high-bandwidth devicesâ€“-like network and PCIe SSD controllersâ
 
     
 
+
+
     
 
     
@@ -373,7 +576,9 @@ We observe that high-bandwidth devicesâ€“-like network and PCIe SSD controllersâ
 
     
 
+    
 
+    
 
     
 
@@ -433,7 +638,9 @@ We observe that high-bandwidth devicesâ€“-like network and PCIe SSD controllersâ
 
     
 
+    
 
+    
 
 
   </div>

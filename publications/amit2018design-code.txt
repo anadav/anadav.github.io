@@ -1,0 +1,29 @@
+HYPERUPCALLS INSTALLATION
+
+The code is provided as a proof-of-concept and is not too clean or ready for
+prime-time. Feel free to contact me (nadav.amit@gmail.com) in case  you
+encounter problems in deployment.
+
+
+INSTRUCTIONS:
+
+1. Download and build the kernel repository at
+https://gitlab.com/anadav/llvm-hcb . Install this kernel in both the host (as
+a hypervisor) and the guest.
+
+
+2. Download and build the modified llvm at https://gitlab.com/anadav/llvm-hcb
+. Install llvm in the guest.
+
+
+3. Enter into the [kernel]/hcb directory in the guest and run "make". Ensure
+that the compiler (llc) that is used is the correct one.
+
+
+4. Run one of the use-cases, which are described in the paper:
+
+  ./register_hypercallback.sh 0 freemem			# Free memory
+  ./register_hypercallback.sh 1 ftrace 			# Tracing 
+  ./register_hypercallback.sh 2 ipi 			# TLB-shootdown
+  ./register_hypercallback.sh 3 protect_exit 	# Protection
+  ./register_hypercallback.sh 4 protect_map 	# Protection

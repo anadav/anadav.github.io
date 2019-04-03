@@ -2,9 +2,9 @@
 <html lang="en"><head>
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1"><!-- Begin Jekyll SEO tag v2.5.0 -->
+  <meta name="viewport" content="width=device-width, initial-scale=1"><!-- Begin Jekyll SEO tag v2.6.0 -->
 <title>VSWAPPER: A Memory Swapper for Virtualized Environments | Nadav Amit</title>
-<meta name="generator" content="Jekyll v3.8.4" />
+<meta name="generator" content="Jekyll v3.8.5" />
 <meta property="og:title" content="VSWAPPER: A Memory Swapper for Virtualized Environments" />
 <meta property="og:locale" content="en_US" />
 <meta name="description" content="Fighting Operating Systems" />
@@ -13,7 +13,7 @@
 <meta property="og:url" content="http://localhost:4000/publications/amit2014vswapper.html" />
 <meta property="og:site_name" content="Nadav Amit" />
 <script type="application/ld+json">
-{"description":"Fighting Operating Systems","@type":"WebPage","url":"http://localhost:4000/publications/amit2014vswapper.html","headline":"VSWAPPER: A Memory Swapper for Virtualized Environments","@context":"http://schema.org"}</script>
+{"url":"http://localhost:4000/publications/amit2014vswapper.html","description":"Fighting Operating Systems","@type":"WebPage","headline":"VSWAPPER: A Memory Swapper for Virtualized Environments","@context":"https://schema.org"}</script>
 <!-- End Jekyll SEO tag -->
 <link rel="stylesheet" href="/assets/main.css"><link type="application/atom+xml" rel="alternate" href="http://localhost:4000/feed.xml" title="Nadav Amit" /></head>
 <body><header class="site-header" role="banner">
@@ -40,7 +40,11 @@
     
   
     
+  
+    
     	<a class="page-link" href="/references.html">Publications</a>
+    
+  
     
   
     
@@ -126,12 +130,31 @@
 
 
 
+
 <p>
 The number of guest virtual machines that can be consolidated on one physical host is typically limited by the memory size, motivating memory overcommitment. Guests are given a choice to either install a "balloon" driver to coordinate the overcommitment activity, or to experience degraded performance due to uncooperative swapping. Ballooning, however, is not a complete solution, as hosts must still fall back on uncooperative swapping in various circumstances. Additionally, ballooning takes time to accommodate change, and so guests might experience degraded performance under changing conditions.
 
 Our goal is to improve the performance of hosts when they fall back on uncooperative swapping and/or operate under changing load conditions. We carefully isolate and characterize the causes for the associated poor performance, which include various types of superfluous swap operations, decayed swap file sequentiality, and ineffective prefetch decisions upon page faults. We address these problems by implementing VSWAPPER, a guest-agnostic memory swapper for virtual environments that allows efficient, uncooperative overcommitment. With inactive ballooning, VSWAPPER yields up to an order of magnitude performance improvement. Combined with ballooning, VSWAPPER can achieve up to double the performance under changing load conditions.
 </p>
 
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
 
     
 
@@ -193,6 +216,12 @@ Our goal is to improve the performance of hosts when they fall back on uncoopera
 
     
 
+    
+
+    
+
+    
+
 
 
     
@@ -253,7 +282,49 @@ Our goal is to improve the performance of hosts when they fall back on uncoopera
 
     
 
+    
 
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
 
     
 
@@ -315,7 +386,31 @@ Our goal is to improve the performance of hosts when they fall back on uncoopera
 
     
 
+    
 
+    
+
+    
+
+
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
 
     
 
@@ -377,6 +472,12 @@ Our goal is to improve the performance of hosts when they fall back on uncoopera
 
     
 
+    
+
+    
+
+    
+
 
 
     
@@ -437,7 +538,113 @@ Our goal is to improve the performance of hosts when they fall back on uncoopera
 
     
 
+    
 
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
 
 
   </div>

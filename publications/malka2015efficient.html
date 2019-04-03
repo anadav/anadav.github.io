@@ -2,9 +2,9 @@
 <html lang="en"><head>
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1"><!-- Begin Jekyll SEO tag v2.5.0 -->
+  <meta name="viewport" content="width=device-width, initial-scale=1"><!-- Begin Jekyll SEO tag v2.6.0 -->
 <title>Efficient Intra-Operating System Protection Against Harmful DMAs | Nadav Amit</title>
-<meta name="generator" content="Jekyll v3.8.4" />
+<meta name="generator" content="Jekyll v3.8.5" />
 <meta property="og:title" content="Efficient Intra-Operating System Protection Against Harmful DMAs" />
 <meta property="og:locale" content="en_US" />
 <meta name="description" content="Fighting Operating Systems" />
@@ -13,7 +13,7 @@
 <meta property="og:url" content="http://localhost:4000/publications/malka2015efficient.html" />
 <meta property="og:site_name" content="Nadav Amit" />
 <script type="application/ld+json">
-{"description":"Fighting Operating Systems","@type":"WebPage","url":"http://localhost:4000/publications/malka2015efficient.html","headline":"Efficient Intra-Operating System Protection Against Harmful DMAs","@context":"http://schema.org"}</script>
+{"url":"http://localhost:4000/publications/malka2015efficient.html","description":"Fighting Operating Systems","@type":"WebPage","headline":"Efficient Intra-Operating System Protection Against Harmful DMAs","@context":"https://schema.org"}</script>
 <!-- End Jekyll SEO tag -->
 <link rel="stylesheet" href="/assets/main.css"><link type="application/atom+xml" rel="alternate" href="http://localhost:4000/feed.xml" title="Nadav Amit" /></head>
 <body><header class="site-header" role="banner">
@@ -40,7 +40,11 @@
     
   
     
+  
+    
     	<a class="page-link" href="/references.html">Publications</a>
+    
+  
     
   
     
@@ -126,12 +130,33 @@
 
 
 
+
 <p>
 Operating systems can defend themselves against misbehaving I/O devices and drivers by employing intra-OS protection. With “strict” intra-OS protection, the OS uses the IOMMU to map each DMA buffer immediately before the DMA occurs and to unmap it immediately after. Strict protection is costly due to IOMMU-related hardware over- heads, motivating “deferred” intra-OS protection, which trades off some safety for performance.
 
 We investigate the Linux intra-OS protection mapping layer and discover that hardware overheads are not exclusively to blame for its high cost. Rather, the cost is amplified by the I/O virtual address (IOVA) allocator, which regularly induces linear complexity. We find that the nature of IOVA allocation requests is inherently simple and constrained due to the manner by which I/O devices are used, allowing us to deliver constant time complexity with a compact, easy-to-implement optimization. Our optimization improves the throughput of standard benchmarks by up to 5.5x. It delivers strict protection with performance comparable to that of the baseline deferred protection. To generalize our case that OSes drive the IOMMU with suboptimal software, we additionally investigate the FreeBSD mapping layer and obtain similar findings.
 </p>
 
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
 
     
 
@@ -193,7 +218,143 @@ We investigate the Linux intra-OS protection mapping layer and discover that har
 
     
 
+    
+
+    
+
+
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+
+
+    
 
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
 
     
 
@@ -229,6 +390,40 @@ We investigate the Linux intra-OS protection mapping layer and discover that har
 
     
 
+
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
     
 
     
@@ -253,7 +448,9 @@ We investigate the Linux intra-OS protection mapping layer and discover that har
 
     
 
+    
 
+    
 
     
 
@@ -276,7 +473,9 @@ We investigate the Linux intra-OS protection mapping layer and discover that har
     
 
     
+
 
+
     
 
     
@@ -313,7 +512,9 @@ We investigate the Linux intra-OS protection mapping layer and discover that har
 
     
 
+    
 
+    
 
     
 
@@ -357,6 +558,8 @@ We investigate the Linux intra-OS protection mapping layer and discover that har
 
     
 
+
+
     
 
     
@@ -373,7 +576,9 @@ We investigate the Linux intra-OS protection mapping layer and discover that har
 
     
 
+    
 
+    
 
     
 
@@ -433,7 +638,9 @@ We investigate the Linux intra-OS protection mapping layer and discover that har
 
     
 
+    
 
+    
 
 
   </div>

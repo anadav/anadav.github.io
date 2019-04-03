@@ -2,9 +2,9 @@
 <html lang="en"><head>
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1"><!-- Begin Jekyll SEO tag v2.5.0 -->
+  <meta name="viewport" content="width=device-width, initial-scale=1"><!-- Begin Jekyll SEO tag v2.6.0 -->
 <title>vIOMMU: efficient IOMMU emulation | Nadav Amit</title>
-<meta name="generator" content="Jekyll v3.8.4" />
+<meta name="generator" content="Jekyll v3.8.5" />
 <meta property="og:title" content="vIOMMU: efficient IOMMU emulation" />
 <meta property="og:locale" content="en_US" />
 <meta name="description" content="Fighting Operating Systems" />
@@ -13,7 +13,7 @@
 <meta property="og:url" content="http://localhost:4000/publications/amit2011viommu.html" />
 <meta property="og:site_name" content="Nadav Amit" />
 <script type="application/ld+json">
-{"description":"Fighting Operating Systems","@type":"WebPage","url":"http://localhost:4000/publications/amit2011viommu.html","headline":"vIOMMU: efficient IOMMU emulation","@context":"http://schema.org"}</script>
+{"url":"http://localhost:4000/publications/amit2011viommu.html","description":"Fighting Operating Systems","@type":"WebPage","headline":"vIOMMU: efficient IOMMU emulation","@context":"https://schema.org"}</script>
 <!-- End Jekyll SEO tag -->
 <link rel="stylesheet" href="/assets/main.css"><link type="application/atom+xml" rel="alternate" href="http://localhost:4000/feed.xml" title="Nadav Amit" /></head>
 <body><header class="site-header" role="banner">
@@ -40,7 +40,11 @@
     
   
     
+  
+    
     	<a class="page-link" href="/references.html">Publications</a>
+    
+  
     
   
     
@@ -126,10 +130,29 @@
 
 
 
+
 <p>
 Direct device assignment, where a guest virtual machine directly interacts with an I/O device without host intervention, is appealing, because it allows an unmodified (non-hypervisor-aware) guest to achieve near-native performance. But device assignment for unmodified guests suffers from two serious deficiencies: (1) it requires pinning all of the guest’s pages, thereby disallowing memory overcommitment, and (2) it exposes the guest’s memory to buggy device drivers. We solve these problems by designing, implementing, and exposing an emulated IOMMU (vIOMMU) to the unmodified guest. We employ two novel optimizations to make vIOMMU perform well: (1) waiting a few milliseconds before tearing down an IOMMU mapping in the hope it will be immediately reused ("optimistic tear-down"), and (2) running the vIOMMU on a sidecore, and thereby enabling for the first time the use of a sidecore by unmodified guests. Both optimizations are highly effective in isolation. The former allows bare-metal to achieve 100% of a 10Gbps line rate. The combination of the two allows an unmodified guest to do the same.
 </p>
 
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
 
     
 
@@ -191,7 +214,31 @@ Direct device assignment, where a guest virtual machine directly interacts with 
 
     
 
+    
 
+    
+
+    
+
+
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
 
     
 
@@ -253,6 +300,12 @@ Direct device assignment, where a guest virtual machine directly interacts with 
 
     
 
+    
+
+    
+
+    
+
 
 
     
@@ -313,7 +366,49 @@ Direct device assignment, where a guest virtual machine directly interacts with 
 
     
 
+    
 
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
 
     
 
@@ -375,6 +470,12 @@ Direct device assignment, where a guest virtual machine directly interacts with 
 
     
 
+    
+
+    
+
+    
+
 
 
     
@@ -435,7 +536,113 @@ Direct device assignment, where a guest virtual machine directly interacts with 
 
     
 
+    
 
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
 
 
   </div>

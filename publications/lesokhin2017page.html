@@ -2,9 +2,9 @@
 <html lang="en"><head>
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1"><!-- Begin Jekyll SEO tag v2.5.0 -->
+  <meta name="viewport" content="width=device-width, initial-scale=1"><!-- Begin Jekyll SEO tag v2.6.0 -->
 <title>Page Fault Support for Network Controllers | Nadav Amit</title>
-<meta name="generator" content="Jekyll v3.8.4" />
+<meta name="generator" content="Jekyll v3.8.5" />
 <meta property="og:title" content="Page Fault Support for Network Controllers" />
 <meta property="og:locale" content="en_US" />
 <meta name="description" content="Fighting Operating Systems" />
@@ -13,7 +13,7 @@
 <meta property="og:url" content="http://localhost:4000/publications/lesokhin2017page.html" />
 <meta property="og:site_name" content="Nadav Amit" />
 <script type="application/ld+json">
-{"description":"Fighting Operating Systems","@type":"WebPage","url":"http://localhost:4000/publications/lesokhin2017page.html","headline":"Page Fault Support for Network Controllers","@context":"http://schema.org"}</script>
+{"url":"http://localhost:4000/publications/lesokhin2017page.html","description":"Fighting Operating Systems","@type":"WebPage","headline":"Page Fault Support for Network Controllers","@context":"https://schema.org"}</script>
 <!-- End Jekyll SEO tag -->
 <link rel="stylesheet" href="/assets/main.css"><link type="application/atom+xml" rel="alternate" href="http://localhost:4000/feed.xml" title="Nadav Amit" /></head>
 <body><header class="site-header" role="banner">
@@ -40,7 +40,11 @@
     
   
     
+  
+    
     	<a class="page-link" href="/references.html">Publications</a>
+    
+  
     
   
     
@@ -126,10 +130,31 @@
 
 
 
+
 <p>
 Direct network I/O allows network controllers (NICs) to expose multiple instances of themselves, to be used by untrusted software without a trusted intermediary. Direct I/O thus frees researchers from legacy software, fueling studies that innovate in multitenant setups. Such studies, however, overwhelmingly ignore one serious problem: direct memory accesses (DMAs) of NICs disallow page faults, forcing systems to either pin entire address spaces to physical memory and thereby hinder memory utilization, or resort to APIs that pin/unpin memory buffers before/after they are DMAed, which complicates the programming model and hampers performance. We solve this problem by designing and implementing page fault support for InfiniBand and Ethernet NICs. A main challenge we tackle—unique to NICs—is handling receive DMAs that trigger page faults, leaving the NIC without memory to store the incoming data. We demonstrate that our solution provides all the benefits associated with “regular” virtual memory, notably (1) a simpler programming model that rids users from the need to pin, and (2) the ability to employ all the canonical memory optimizations, such as memory overcommitment and demand-paging based on actual use. We show that, as a result, benchmark performance improves by up to 1.9x.
 </p>
 
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
 
     
 
@@ -191,7 +216,143 @@ Direct network I/O allows network controllers (NICs) to expose multiple instance
 
     
 
+    
+
+    
+
+
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+
+
+    
 
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
 
     
 
@@ -227,6 +388,40 @@ Direct network I/O allows network controllers (NICs) to expose multiple instance
 
     
 
+
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
     
 
     
@@ -251,7 +446,9 @@ Direct network I/O allows network controllers (NICs) to expose multiple instance
 
     
 
+    
 
+    
 
     
 
@@ -274,7 +471,9 @@ Direct network I/O allows network controllers (NICs) to expose multiple instance
     
 
     
+
 
+
     
 
     
@@ -311,7 +510,9 @@ Direct network I/O allows network controllers (NICs) to expose multiple instance
 
     
 
+    
 
+    
 
     
 
@@ -355,6 +556,8 @@ Direct network I/O allows network controllers (NICs) to expose multiple instance
 
     
 
+
+
     
 
     
@@ -371,7 +574,9 @@ Direct network I/O allows network controllers (NICs) to expose multiple instance
 
     
 
+    
 
+    
 
     
 
@@ -431,7 +636,9 @@ Direct network I/O allows network controllers (NICs) to expose multiple instance
 
     
 
+    
 
+    
 
 
   </div>
