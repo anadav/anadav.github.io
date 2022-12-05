@@ -2,9 +2,9 @@
 <html lang="en"><head>
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1"><!-- Begin Jekyll SEO tag v2.6.0 -->
+  <meta name="viewport" content="width=device-width, initial-scale=1"><!-- Begin Jekyll SEO tag v2.8.0 -->
 <title>Page fracturing on Intel CPUs | Nadav Amit</title>
-<meta name="generator" content="Jekyll v3.8.5" />
+<meta name="generator" content="Jekyll v4.3.1" />
 <meta property="og:title" content="Page fracturing on Intel CPUs" />
 <meta property="og:locale" content="en_US" />
 <meta name="description" content="Fighting Operating Systems" />
@@ -14,8 +14,10 @@
 <meta property="og:site_name" content="Nadav Amit" />
 <meta property="og:type" content="article" />
 <meta property="article:published_time" content="2018-08-01T14:52:01-07:00" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="Page fracturing on Intel CPUs" />
 <script type="application/ld+json">
-{"description":"Fighting Operating Systems","@type":"BlogPosting","url":"http://localhost:4000/developed-posts/2018-10-21-page-fracturing.html","headline":"Page fracturing on Intel CPUs","dateModified":"2018-08-01T14:52:01-07:00","datePublished":"2018-08-01T14:52:01-07:00","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/developed-posts/2018-10-21-page-fracturing.html"},"@context":"https://schema.org"}</script>
+{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2018-08-01T14:52:01-07:00","datePublished":"2018-08-01T14:52:01-07:00","description":"Fighting Operating Systems","headline":"Page fracturing on Intel CPUs","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/developed-posts/2018-10-21-page-fracturing.html"},"url":"http://localhost:4000/developed-posts/2018-10-21-page-fracturing.html"}</script>
 <!-- End Jekyll SEO tag -->
 <link rel="stylesheet" href="/assets/main.css"><link type="application/atom+xml" rel="alternate" href="http://localhost:4000/feed.xml" title="Nadav Amit" /></head>
 <body><header class="site-header" role="banner">
@@ -106,6 +108,14 @@
     
   
     
+  
+    
+  
+    
+  
+    
+  
+    
     	<a class="page-link" href="/contact.html">Contact</a>
     
   
@@ -135,9 +145,9 @@
 
 <p>As we know, all modern CPUs use virtual memory, and CPUs translate virtual memory address into physical ones before they actually carry out the memory accesses. This translation is performed according to an architectural, memory-resident data-structure, which is set by the operating system, and maps virtual pages into physical frames. This data structure is a radix-tree, which also known as a page-table hierarchy in many architectures, including the x86 architecture, which is the subject of this discussion. Translating a virtual-address by “walking” a page-table hierarchy require multiple memory access, and since the CPU performs many memory accesses, it is essential to perform these translations fast.</p>
 
-<p>For that matter CPUs hold a cache that holds the virtual-to-physical mappings, which is known as translation lookaside buffer or TLB. Unlike some other common caches, the TLB is not coherent, and when the operating system changes the mappings in memory, it is required to initiate a TLB flush operation to invalidate the caches. In the x86 architecture, two types of TLB flushes exist: a selective flush of a single page-table entry (PTE), which maps a single page, and a full flush that invalidates all the page-entries in the address-space<sup id="fnref:1"><a href="#fn:1" class="footnote">1</a></sup>.</p>
+<p>For that matter CPUs hold a cache that holds the virtual-to-physical mappings, which is known as translation lookaside buffer or TLB. Unlike some other common caches, the TLB is not coherent, and when the operating system changes the mappings in memory, it is required to initiate a TLB flush operation to invalidate the caches. In the x86 architecture, two types of TLB flushes exist: a selective flush of a single page-table entry (PTE), which maps a single page, and a full flush that invalidates all the page-entries in the address-space<sup id="fnref:1" role="doc-noteref"><a href="#fn:1" class="footnote" rel="footnote">1</a></sup>.</p>
 
-<p>When hardware virtualization is used, the physical addresses of the (guest) virtual machine are not the same as the (host) machine physical address, since virtualization requires an additional level of memory indirection to allow the hypervisor to provision its physical memory among virtual machines. Modern CPUs perform the two levels of address translation in hardware: the guest virtual addresses (GVA) are translated into guest physical addresses (GPA) using the virtual-machine page tables, and the result GPA is then translated into host-physical address (HPA). This HPA is the address that would actually be used for the memory access. Again, to make these translation efficient, the TLB caches translations from GVA directly into HPA<sup id="fnref:2"><a href="#fn:2" class="footnote">2</a></sup>.</p>
+<p>When hardware virtualization is used, the physical addresses of the (guest) virtual machine are not the same as the (host) machine physical address, since virtualization requires an additional level of memory indirection to allow the hypervisor to provision its physical memory among virtual machines. Modern CPUs perform the two levels of address translation in hardware: the guest virtual addresses (GVA) are translated into guest physical addresses (GPA) using the virtual-machine page tables, and the result GPA is then translated into host-physical address (HPA). This HPA is the address that would actually be used for the memory access. Again, to make these translation efficient, the TLB caches translations from GVA directly into HPA<sup id="fnref:2" role="doc-noteref"><a href="#fn:2" class="footnote" rel="footnote">2</a></sup>.</p>
 
 <h2 id="investigation">Investigation</h2>
 
@@ -235,9 +245,9 @@
   </tbody>
 </table>
 
-<p>AMD behavior is reasonable<sup id="fnref:3"><a href="#fn:3" class="footnote">3</a></sup>. As the flushed page is not part of the working-set, the runtime of the test when no flushes take place (“access net”) and when a single page is flushed (“w/invlpg net”) are almost identical and faster by over 30% than the time it takes when full TLB flushes take place.</p>
+<p>AMD behavior is reasonable<sup id="fnref:3" role="doc-noteref"><a href="#fn:3" class="footnote" rel="footnote">3</a></sup>. As the flushed page is not part of the working-set, the runtime of the test when no flushes take place (“access net”) and when a single page is flushed (“w/invlpg net”) are almost identical and faster by over 30% than the time it takes when full TLB flushes take place.</p>
 
-<p>Does it always happen? Could it be that Intel missed such an issue, which does not affect correctness, but can hurt performance? Such a performance hit is not theoretical, but can have real performance impact on some common workloads, for example the Apache webserver, which frequently maps files to memory and then unmaps them, triggering TLB flushes. Further analysis was needed. Now that I confirmed the phenomenon is real, I could start to look on the performance-counters that measure TLB misses <sup id="fnref:4"><a href="#fn:4" class="footnote">4</a></sup>. After a few experiments, I realized that the behavior is indeed specific for virtual machines and depends on the page-sizes in the guest and host (nested) page tables. Here is a table that summarizes the number of dTLB misses, as reported by the performance counters, according to the different page-sizes:</p>
+<p>Does it always happen? Could it be that Intel missed such an issue, which does not affect correctness, but can hurt performance? Such a performance hit is not theoretical, but can have real performance impact on some common workloads, for example the Apache webserver, which frequently maps files to memory and then unmaps them, triggering TLB flushes. Further analysis was needed. Now that I confirmed the phenomenon is real, I could start to look on the performance-counters that measure TLB misses <sup id="fnref:4" role="doc-noteref"><a href="#fn:4" class="footnote" rel="footnote">4</a></sup>. After a few experiments, I realized that the behavior is indeed specific for virtual machines and depends on the page-sizes in the guest and host (nested) page tables. Here is a table that summarizes the number of dTLB misses, as reported by the performance counters, according to the different page-sizes:</p>
 
 <table>
   <thead>
@@ -301,7 +311,7 @@
 
 <p>We got to the understanding that when a VM uses 2MB pages in its page-tables and the hypervisor uses 4KB pages in the nested page-tables, selective TLB cause full TLB flushes. But why? Through some private communication with Intel, I understood that this behavior is not a bug, but a feature that is intended to deal with what Intel calls “page fracturing”. What is page-fracturing? Let’s look at an excerpt of a virtual address space, as it is mapped in the guest and host page-table:</p>
 
-<p><img src="/assets/fracturing-f5a34e2431ec3c6e2eb67f995f650c0a807f1a25f66bbaf3718025dc701a7fc9.png" alt="Fracturing" /></p>
+<p><img src="/assets/fracturing-e65cf88c254b40a863f59d5d9ef97ce366126a7409a43ca5fcd0945c38a9654a6c5949ed1144855c5c7148cc9fe46aeb50cf04bca523b5828a25c0f10cc3c532.png" alt="Fracturing" /></p>
 
 <p>In such a scenario, the guest-virtual to host-physical address translation of each 4KB page will be held in a separate TLB entry. Obviously, some translations may be cached in the TLBs, while others - not. Let’s assume the mapping of A is cached and the one of B is not, and the OS directs the CPU to</p>
 
@@ -341,14 +351,14 @@ Host page tables:  | 4KB | 4KB | ... | 4KB | 4KB | 4KB |
 
 <p>I created a simple test that repeatedly accessed several (50) memory pages and then invalidated a completely different page:</p>
 
-<figure class="highlight"><pre><code class="language-c" data-lang="c"><span></span>    <span class="n">t_start</span> <span class="o">=</span> <span class="n">rdtsc</span><span class="p">();</span>
+<figure class="highlight"><pre><code class="language-c" data-lang="c">    <span class="n">t_start</span> <span class="o">=</span> <span class="n">rdtsc</span><span class="p">();</span>
     <span class="k">for</span> <span class="p">(</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">ITERATIONS</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
         <span class="n">invlpg</span><span class="p">(</span><span class="n">another_addr</span><span class="p">);</span>
         <span class="k">for</span> <span class="p">(</span><span class="n">j</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">j</span> <span class="o">&lt;</span> <span class="n">N_PAGES</span><span class="p">;</span> <span class="n">j</span><span class="o">++</span><span class="p">)</span>
             <span class="n">v</span> <span class="o">=</span> <span class="n">buf</span><span class="p">[</span><span class="n">PAGE_SIZE</span> <span class="o">*</span> <span class="n">j</span><span class="p">];</span>
     <span class="p">}</span>
     <span class="n">t_single</span> <span class="o">=</span> <span class="n">rdtsc</span><span class="p">()</span> <span class="o">-</span> <span class="n">t_start</span><span class="p">;</span>
-    <span class="n">printf</span><span class="p">(</span><span class="s">&quot;with invlpg:        %lu</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">t_single</span><span class="p">);</span></code></pre></figure>
+    <span class="n">printf</span><span class="p">(</span><span class="s">"with invlpg:        %lu</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">t_single</span><span class="p">);</span></code></pre></figure>
 
 <p>To make sense of these resu
 Then, I ran a similar test which performed a full TLB flush (by reloading the CR3 register) instead of the single page invalidation. Howeve</p>
@@ -366,7 +376,7 @@ Many CPUs support multiple page sizes,</p>
 
 <p>So half a year later - are you protected? Probably not. Recently I found that the Linux protection against Spectre v2 is broken in virtual machines and Dave Hansen found a bug in the <a href="https://www.darkreading.com/risk/microsoft-issues-emergency-patch-to-disable-intels-broken-spectre-fix/d/d-id/1330932">Meltdown</a> protection. Spectre v1 was never considered fully resolved, with mitigations keep coming in, but even the existing ones were found to be <a href="https://www.spinics.net/lists/linux-tip-commits/msg44433.html">buggy</a>.</p>
 
-<p>There is clearly a problem, as currently it is hard for people to easily realize whether they are protected against these attacks. Sure, one can see whether the OS or other piece of software reports that it is protected, but these reports might be wrong. There is a fundamental problem with these protections that, in a way, is the same one that caused Linus Torvalds to politely (yes, politely) <a href="https://lkml.org/lkml/2018/2/15/1378">decline</a> a Meltdown mitigation technique we proposed<sup id="fnref:1:1"><a href="#fn:1" class="footnote">1</a></sup>:</p>
+<p>There is clearly a problem, as currently it is hard for people to easily realize whether they are protected against these attacks. Sure, one can see whether the OS or other piece of software reports that it is protected, but these reports might be wrong. There is a fundamental problem with these protections that, in a way, is the same one that caused Linus Torvalds to politely (yes, politely) <a href="https://lkml.org/lkml/2018/2/15/1378">decline</a> a Meltdown mitigation technique we proposed<sup id="fnref:1:1" role="doc-noteref"><a href="#fn:1" class="footnote" rel="footnote">1</a></sup>:</p>
 
 <blockquote>
   <p>Sure, I can see it working, but it’s some really shady stuff, and now the scheduler needs to save/restore/check one more subtle bit.</p>
@@ -386,31 +396,31 @@ Many CPUs support multiple page sizes,</p>
 
 <p>Update: I wonder if Windows is indeed safe. Windows uses retpoline, but it is not clear whether they are used exclusively or with alternative solutions that use hardware mitigation (IBPB/IBRS). Anyhow, measuring the performance counter of Windows 10 (that runs in the VM) raises some questions, as it show there are indirect branches inside Windows kernel. Here are the performance counters as measure in a KVM guest:</p>
 
-<figure class="highlight"><pre><code class="language-bash" data-lang="bash"><span></span>$ sudo perf stat -e br_inst_exec.taken_indirect_jump_non_call_ret:Gk <span class="se">\</span>
-  -e br_inst_exec.taken_indirect_near_call:Gk -a -- sleep <span class="m">5</span>
+<figure class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="nv">$ </span><span class="nb">sudo </span>perf <span class="nb">stat</span> <span class="nt">-e</span> br_inst_exec.taken_indirect_jump_non_call_ret:Gk <span class="se">\</span>
+  <span class="nt">-e</span> br_inst_exec.taken_indirect_near_call:Gk <span class="nt">-a</span> <span class="nt">--</span> <span class="nb">sleep </span>5
  
- Performance counter stats <span class="k">for</span> <span class="s1">&#39;system wide&#39;</span>:
+ Performance counter stats <span class="k">for</span> <span class="s1">'system wide'</span>:
 
-         <span class="m">1</span>,682,939      br_inst_exec.taken_indirect_jump_non_call_ret:Gk
-         <span class="m">1</span>,102,037      br_inst_exec.taken_indirect_near_call:Gk
+         1,682,939      br_inst_exec.taken_indirect_jump_non_call_ret:Gk
+         1,102,037      br_inst_exec.taken_indirect_near_call:Gk
 
-       <span class="m">5</span>.001077704 seconds <span class="nb">time</span> elapsed</code></pre></figure>
+       5.001077704 seconds <span class="nb">time </span>elapsed</code></pre></figure>
 
 <h2 id="footnotes">Footnotes</h2>
 
-<div class="footnotes">
+<div class="footnotes" role="doc-endnotes">
   <ol>
-    <li id="fn:1">
-      <p>Ignoring INVPCID flavors and global page flushes for simplicity <a href="#fnref:1" class="reversefootnote">&#8617;</a> <a href="#fnref:1:1" class="reversefootnote">&#8617;<sup>2</sup></a></p>
+    <li id="fn:1" role="doc-endnote">
+      <p>Ignoring INVPCID flavors and global page flushes for simplicity <a href="#fnref:1" class="reversefootnote" role="doc-backlink">&#8617;</a> <a href="#fnref:1:1" class="reversefootnote" role="doc-backlink">&#8617;<sup>2</sup></a></p>
     </li>
-    <li id="fn:2">
-      <p>There are additional schemes <a href="#fnref:2" class="reversefootnote">&#8617;</a></p>
+    <li id="fn:2" role="doc-endnote">
+      <p>There are additional schemes <a href="#fnref:2" class="reversefootnote" role="doc-backlink">&#8617;</a></p>
     </li>
-    <li id="fn:3">
-      <p>The results show as if memory accesses are faster when TLB flushes of a single page are performed then when no TLB flushes take place. This does not make much sense. This result appears to be an artifact of the test measurement scheme, which disregards out-of-order execution behavior. The tests were only intended to provide qualitative indication whether full TLB flushes take place. <a href="#fnref:3" class="reversefootnote">&#8617;</a></p>
+    <li id="fn:3" role="doc-endnote">
+      <p>The results show as if memory accesses are faster when TLB flushes of a single page are performed then when no TLB flushes take place. This does not make much sense. This result appears to be an artifact of the test measurement scheme, which disregards out-of-order execution behavior. The tests were only intended to provide qualitative indication whether full TLB flushes take place. <a href="#fnref:3" class="reversefootnote" role="doc-backlink">&#8617;</a></p>
     </li>
-    <li id="fn:4">
-      <p>Usually, I try to avoid relying on such counters as the sole indication for hardware behavior, as it is known that some of them are can provide incorrect results in certain cases. <a href="#fnref:4" class="reversefootnote">&#8617;</a></p>
+    <li id="fn:4" role="doc-endnote">
+      <p>Usually, I try to avoid relying on such counters as the sole indication for hardware behavior, as it is known that some of them are can provide incorrect results in certain cases. <a href="#fnref:4" class="reversefootnote" role="doc-backlink">&#8617;</a></p>
     </li>
   </ol>
 </div>

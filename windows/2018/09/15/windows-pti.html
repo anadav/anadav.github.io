@@ -2,9 +2,9 @@
 <html lang="en"><head>
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1"><!-- Begin Jekyll SEO tag v2.6.0 -->
+  <meta name="viewport" content="width=device-width, initial-scale=1"><!-- Begin Jekyll SEO tag v2.8.0 -->
 <title>Can you break Windows Page Table Isolation? | Nadav Amit</title>
-<meta name="generator" content="Jekyll v3.8.5" />
+<meta name="generator" content="Jekyll v4.3.1" />
 <meta property="og:title" content="Can you break Windows Page Table Isolation?" />
 <meta property="og:locale" content="en_US" />
 <meta name="description" content="The Meltdown and L1TF attacks proved that Intel CPUs are susceptible for attacks that use speculative execution to leak data from the kernel address-space. The root-cause for both of these attacks is the ability of unprivileged code to read speculatively data even if the page-table permissions should prevent the access. To address this security vulnerability Page Table Isolation (PTI) has been introduced by all common OSes. When PTI is used, a different set of page-tables is used when user-space run." />
@@ -14,8 +14,10 @@
 <meta property="og:site_name" content="Nadav Amit" />
 <meta property="og:type" content="article" />
 <meta property="article:published_time" content="2018-09-15T14:52:01-07:00" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="Can you break Windows Page Table Isolation?" />
 <script type="application/ld+json">
-{"description":"The Meltdown and L1TF attacks proved that Intel CPUs are susceptible for attacks that use speculative execution to leak data from the kernel address-space. The root-cause for both of these attacks is the ability of unprivileged code to read speculatively data even if the page-table permissions should prevent the access. To address this security vulnerability Page Table Isolation (PTI) has been introduced by all common OSes. When PTI is used, a different set of page-tables is used when user-space run.","@type":"BlogPosting","url":"http://localhost:4000/windows/2018/09/15/windows-pti.html","headline":"Can you break Windows Page Table Isolation?","dateModified":"2018-09-15T14:52:01-07:00","datePublished":"2018-09-15T14:52:01-07:00","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/windows/2018/09/15/windows-pti.html"},"@context":"https://schema.org"}</script>
+{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2018-09-15T14:52:01-07:00","datePublished":"2018-09-15T14:52:01-07:00","description":"The Meltdown and L1TF attacks proved that Intel CPUs are susceptible for attacks that use speculative execution to leak data from the kernel address-space. The root-cause for both of these attacks is the ability of unprivileged code to read speculatively data even if the page-table permissions should prevent the access. To address this security vulnerability Page Table Isolation (PTI) has been introduced by all common OSes. When PTI is used, a different set of page-tables is used when user-space run.","headline":"Can you break Windows Page Table Isolation?","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/windows/2018/09/15/windows-pti.html"},"url":"http://localhost:4000/windows/2018/09/15/windows-pti.html"}</script>
 <!-- End Jekyll SEO tag -->
 <link rel="stylesheet" href="/assets/main.css"><link type="application/atom+xml" rel="alternate" href="http://localhost:4000/feed.xml" title="Nadav Amit" /></head>
 <body><header class="site-header" role="banner">
@@ -106,6 +108,14 @@
     
   
     
+  
+    
+  
+    
+  
+    
+  
+    
     	<a class="page-link" href="/contact.html">Contact</a>
     
   
@@ -135,16 +145,16 @@
 
 <p>Is PTI implemented correctly? Well, in Linux, PTI implementation is open for review, reasonable, and is easy to audit . Microsoft provides a lot of information about the implementation of PTI in their system, but the code is obviously not open for review. Out of curiosity, I decided to check Windows 10. Using KVM and a  simple script, I dumped pages which are mapped as supervisor pages in the userspace. The results were surprising:</p>
 
-<figure class="highlight"><pre><code class="language-bash" data-lang="bash"><span></span>$ sudo ./pti_test.py --socket ~/vm-images/qmp-sock
+<figure class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="nv">$ </span><span class="nb">sudo</span> ./pti_test.py <span class="nt">--socket</span> ~/vm-images/qmp-sock
 
-kernel frames: <span class="m">124</span>
-page tables accessible by the user: <span class="m">0</span>
-page tables accessible by the kernel: <span class="m">115</span>
-writable page tables: <span class="m">115</span>
-page tables: <span class="m">115</span>
-global kernel frames: <span class="m">9</span>
-kernel w+x: <span class="m">118</span>
-kernel/user aliases: <span class="m">0</span></code></pre></figure>
+kernel frames: 124
+page tables accessible by the user: 0
+page tables accessible by the kernel: 115
+writable page tables: 115
+page tables: 115
+global kernel frames: 9
+kernel w+x: 118
+kernel/user aliases: 0</code></pre></figure>
 
 <p>This results surprised me for two reasons. First, Windows 10 does not implement <a href="https://en.wikipedia.org/wiki/W%5EX">W^X</a>, and maps pages which are both executable and writable even in the user page-tables. Inspecting the content of these pages shows that at least some of them are guaranteed not to hold code, and should have been marked as non-executable in the page-tables. I contacted Microsoft which claimed that this is intended since “in some cases the kernel is mapped with large pages” and that this can be prevented by enabling <a href="https://docs.microsoft.com/en-us/windows/security/threat-protection/windows-defender-exploit-guard/enable-virtualization-based-protection-of-code-integrity">virtualization based protection (VBS)</a>. However, dumping the page-tables (you can use the attached script), shows that no huge-pages were used, at least in my experiment, and still pages were mapped as writable and executable. VBS is not commonly used, and it might induce significant performance overheads, especially when Windows is being run inside a virtual-machine.</p>
 
