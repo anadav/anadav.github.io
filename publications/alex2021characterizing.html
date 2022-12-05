@@ -3,20 +3,20 @@
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1"><!-- Begin Jekyll SEO tag v2.8.0 -->
-<title>Hypercallbacks | Nadav Amit</title>
+<title>Characterizing, exploiting, and detecting DMA code injection vulnerabilities in the presence of an IOMMU | Nadav Amit</title>
 <meta name="generator" content="Jekyll v4.3.1" />
-<meta property="og:title" content="Hypercallbacks" />
+<meta property="og:title" content="Characterizing, exploiting, and detecting DMA code injection vulnerabilities in the presence of an IOMMU" />
 <meta property="og:locale" content="en_US" />
 <meta name="description" content="Fighting Operating Systems" />
 <meta property="og:description" content="Fighting Operating Systems" />
-<link rel="canonical" href="http://localhost:4000/publications/amit2017hypercallbacks-osr.html" />
-<meta property="og:url" content="http://localhost:4000/publications/amit2017hypercallbacks-osr.html" />
+<link rel="canonical" href="http://localhost:4000/publications/alex2021characterizing.html" />
+<meta property="og:url" content="http://localhost:4000/publications/alex2021characterizing.html" />
 <meta property="og:site_name" content="Nadav Amit" />
 <meta property="og:type" content="website" />
 <meta name="twitter:card" content="summary" />
-<meta property="twitter:title" content="Hypercallbacks" />
+<meta property="twitter:title" content="Characterizing, exploiting, and detecting DMA code injection vulnerabilities in the presence of an IOMMU" />
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebPage","description":"Fighting Operating Systems","headline":"Hypercallbacks","url":"http://localhost:4000/publications/amit2017hypercallbacks-osr.html"}</script>
+{"@context":"https://schema.org","@type":"WebPage","description":"Fighting Operating Systems","headline":"Characterizing, exploiting, and detecting DMA code injection vulnerabilities in the presence of an IOMMU","url":"http://localhost:4000/publications/alex2021characterizing.html"}</script>
 <!-- End Jekyll SEO tag -->
 <link rel="stylesheet" href="/assets/main.css"><link type="application/atom+xml" rel="alternate" href="http://localhost:4000/feed.xml" title="Nadav Amit" /></head>
 <body><header class="site-header" role="banner">
@@ -135,14 +135,14 @@
         <article class="post">
 
   <header class="post-header">
-    <h1 class="post-title">Hypercallbacks</h1>
+    <h1 class="post-title">Characterizing, exploiting, and detecting DMA code injection vulnerabilities in the presence of an IOMMU</h1>
   </header>
 
   <div class="post-content">
-    <p>Amit, Nadav and Wei, Michael and Tu, Cheng-Chun</p>
+    <p>Alex, Markuze and Vargaftik, Shay and Kupfer, Gil and Pismeny, Boris and Amit, Nadav and Morrison, Adam and Tsafrir, Dan</p>
 
 
-<p><em>ACM SIGOPS Operating Systems Review</em>, 2017</p>
+<p><em>European Conference on Computer Systems (EuroSys)</em>, 2021</p>
 
 
 
@@ -153,7 +153,12 @@
 
 
 <p>
-Hypervisors and virtual machines (VMs) running under them must coordinate policy decisions in order to run efficiently. The abstraction of a VM, however, creates a semantic gap which makes it difficult for hypervisor and VM to work in unison due to privilege separation. Today, the semantic gap is bridged by techniques which couple policy decision with execution. In this paper, we introduce a new mechanism, the hypercallback, which enables hypervisors and VMs to coordinate policy with verified, safety-checked code, decoupling execution and decision making. Our preliminary results show that hypercallbacks can significantly improve memory management without compromising security and robustness, and we believe hypercallbacks can be applied to many domains outside of memory management.
+Direct memory access (DMA) renders a system vulnerable to DMA attacks, in which I/O devices access memory regions not intended for their use. Hardware input–output memory management units (IOMMU) can be used to provide protection. However, an IOMMU cannot prevent all DMA attacks because it only restricts DMA at page-level granularity, leading to sub-page vulnerabilities.
+Current DMA attacks rely on simple situations in which write access to a kernel pointer is obtained due to sub-page vulnerabilities and all other attack ingredients are available and reside on the same page. We show that DMA vulnerabilities are a deep-rooted issue and it is often the kernel design that enables complex and multistage DMA attacks. This work 
+presents a structured top-down approach to characterize, exploit, and detect them.
+To this end, we first categorize sub-page vulnerabilities into four types, providing insight into the structure of DMA vulnerabilities. We then identify a set of three vulnerability attributes that are sufficient to execute code injection attacks.
+We built analysis tools that detect these sub-page vulnerabilities and analyze the Linux kernel. We found that 72% of the device drivers expose callback pointers, which may be overwritten by a device to hijack the kernel control flow.
+Aided by our tools’ output, we demonstrate novel code injection attacks on the Linux kernel; we refer to these as compound attacks. All previously reported attacks are single-step, with the vulnerability attributes present in a single page. In compound attacks, the vulnerability attributes are initially incomplete. However, we demonstrate that they can be obtained by carefully exploiting standard OS behavior.
 </p>
 
 
@@ -179,6 +184,8 @@ Hypervisors and virtual machines (VMs) running under them must coordinate policy
 
     
 
+    
+    	 [<a href="/publications/alex2021characterizing.pdf">PDF</a>]
     
 
     

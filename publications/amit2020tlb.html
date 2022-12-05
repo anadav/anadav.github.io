@@ -3,20 +3,20 @@
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1"><!-- Begin Jekyll SEO tag v2.8.0 -->
-<title>Hypercallbacks | Nadav Amit</title>
+<title>Don’t shoot down TLB shootdowns! | Nadav Amit</title>
 <meta name="generator" content="Jekyll v4.3.1" />
-<meta property="og:title" content="Hypercallbacks" />
+<meta property="og:title" content="Don’t shoot down TLB shootdowns!" />
 <meta property="og:locale" content="en_US" />
 <meta name="description" content="Fighting Operating Systems" />
 <meta property="og:description" content="Fighting Operating Systems" />
-<link rel="canonical" href="http://localhost:4000/publications/amit2017hypercallbacks-osr.html" />
-<meta property="og:url" content="http://localhost:4000/publications/amit2017hypercallbacks-osr.html" />
+<link rel="canonical" href="http://localhost:4000/publications/amit2020tlb.html" />
+<meta property="og:url" content="http://localhost:4000/publications/amit2020tlb.html" />
 <meta property="og:site_name" content="Nadav Amit" />
 <meta property="og:type" content="website" />
 <meta name="twitter:card" content="summary" />
-<meta property="twitter:title" content="Hypercallbacks" />
+<meta property="twitter:title" content="Don’t shoot down TLB shootdowns!" />
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebPage","description":"Fighting Operating Systems","headline":"Hypercallbacks","url":"http://localhost:4000/publications/amit2017hypercallbacks-osr.html"}</script>
+{"@context":"https://schema.org","@type":"WebPage","description":"Fighting Operating Systems","headline":"Don’t shoot down TLB shootdowns!","url":"http://localhost:4000/publications/amit2020tlb.html"}</script>
 <!-- End Jekyll SEO tag -->
 <link rel="stylesheet" href="/assets/main.css"><link type="application/atom+xml" rel="alternate" href="http://localhost:4000/feed.xml" title="Nadav Amit" /></head>
 <body><header class="site-header" role="banner">
@@ -135,14 +135,14 @@
         <article class="post">
 
   <header class="post-header">
-    <h1 class="post-title">Hypercallbacks</h1>
+    <h1 class="post-title">Don’t shoot down TLB shootdowns!</h1>
   </header>
 
   <div class="post-content">
-    <p>Amit, Nadav and Wei, Michael and Tu, Cheng-Chun</p>
+    <p>Amit, Nadav and Tai, Amy and Wei, Michael</p>
 
 
-<p><em>ACM SIGOPS Operating Systems Review</em>, 2017</p>
+<p><em>European Conference on Computer Systems (EuroSys)</em>, 2020</p>
 
 
 
@@ -153,7 +153,7 @@
 
 
 <p>
-Hypervisors and virtual machines (VMs) running under them must coordinate policy decisions in order to run efficiently. The abstraction of a VM, however, creates a semantic gap which makes it difficult for hypervisor and VM to work in unison due to privilege separation. Today, the semantic gap is bridged by techniques which couple policy decision with execution. In this paper, we introduce a new mechanism, the hypercallback, which enables hypervisors and VMs to coordinate policy with verified, safety-checked code, decoupling execution and decision making. Our preliminary results show that hypercallbacks can significantly improve memory management without compromising security and robustness, and we believe hypercallbacks can be applied to many domains outside of memory management.
+Translation Lookaside Buffers (TLBs) are critical for building performant virtual memory systems. Because most processors do not provide coherence for TLB mappings, TLB shootdowns provide a software mechanism that invokes inter-processor interrupts (IPIs) to synchronize TLBs. TLB shootdowns are expensive, so recent work has aimed to avoid the frequency of shootdowns through techniques such as batching. We show that aggressive batching can cause correctness issues and addressing them can obviate the benefits of batching. Instead, our work takes a different approach which focuses on both improving the performance of TLB shootdowns and carefully selecting where to avoid shootdowns. We introduce four general techniques to improve shootdown performance: (1) concurrently flush initiator and remote TLBs, (2) early acknowledgement from remote cores, (3) cacheline consolidation of kernel data structures to reduce cacheline contention, and (4) in-context flushing of userspace entries to address the overheads introduced by Spectre and Meltdown mitigations. We also identify that TLB flushing can be avoiding when handling copy-on-write (CoW) faults and some TLB shootdowns can be batched in certain system calls. Overall, we show that our approach results in signifi- cant speedups without sacrificing safety and correctness in both microbenchmarks and real-world applications.
 </p>
 
 
@@ -217,6 +217,8 @@ Hypervisors and virtual machines (VMs) running under them must coordinate policy
 
     
 
+    
+    	 [<a href="/publications/amit2020tlb.pdf">PDF</a>]
     
 
     

@@ -3,20 +3,20 @@
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1"><!-- Begin Jekyll SEO tag v2.8.0 -->
-<title>Hypercallbacks | Nadav Amit</title>
+<title>Copy-on-Pin: The Missing Piece for Correct Copy-on-Write | Nadav Amit</title>
 <meta name="generator" content="Jekyll v4.3.1" />
-<meta property="og:title" content="Hypercallbacks" />
+<meta property="og:title" content="Copy-on-Pin: The Missing Piece for Correct Copy-on-Write" />
 <meta property="og:locale" content="en_US" />
 <meta name="description" content="Fighting Operating Systems" />
 <meta property="og:description" content="Fighting Operating Systems" />
-<link rel="canonical" href="http://localhost:4000/publications/amit2017hypercallbacks-osr.html" />
-<meta property="og:url" content="http://localhost:4000/publications/amit2017hypercallbacks-osr.html" />
+<link rel="canonical" href="http://localhost:4000/publications/hildenbrand2023cow.html" />
+<meta property="og:url" content="http://localhost:4000/publications/hildenbrand2023cow.html" />
 <meta property="og:site_name" content="Nadav Amit" />
 <meta property="og:type" content="website" />
 <meta name="twitter:card" content="summary" />
-<meta property="twitter:title" content="Hypercallbacks" />
+<meta property="twitter:title" content="Copy-on-Pin: The Missing Piece for Correct Copy-on-Write" />
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebPage","description":"Fighting Operating Systems","headline":"Hypercallbacks","url":"http://localhost:4000/publications/amit2017hypercallbacks-osr.html"}</script>
+{"@context":"https://schema.org","@type":"WebPage","description":"Fighting Operating Systems","headline":"Copy-on-Pin: The Missing Piece for Correct Copy-on-Write","url":"http://localhost:4000/publications/hildenbrand2023cow.html"}</script>
 <!-- End Jekyll SEO tag -->
 <link rel="stylesheet" href="/assets/main.css"><link type="application/atom+xml" rel="alternate" href="http://localhost:4000/feed.xml" title="Nadav Amit" /></head>
 <body><header class="site-header" role="banner">
@@ -135,14 +135,14 @@
         <article class="post">
 
   <header class="post-header">
-    <h1 class="post-title">Hypercallbacks</h1>
+    <h1 class="post-title">Copy-on-Pin: The Missing Piece for Correct Copy-on-Write</h1>
   </header>
 
   <div class="post-content">
-    <p>Amit, Nadav and Wei, Michael and Tu, Cheng-Chun</p>
+    <p>Hildenbrand, David and Schulz, Martin and Amit, Nadav</p>
 
 
-<p><em>ACM SIGOPS Operating Systems Review</em>, 2017</p>
+<p><em>Architectural Support for Programming Languages & Operating Systems (ASPLOS)</em>, 2023</p>
 
 
 
@@ -153,7 +153,7 @@
 
 
 <p>
-Hypervisors and virtual machines (VMs) running under them must coordinate policy decisions in order to run efficiently. The abstraction of a VM, however, creates a semantic gap which makes it difficult for hypervisor and VM to work in unison due to privilege separation. Today, the semantic gap is bridged by techniques which couple policy decision with execution. In this paper, we introduce a new mechanism, the hypercallback, which enables hypervisors and VMs to coordinate policy with verified, safety-checked code, decoupling execution and decision making. Our preliminary results show that hypercallbacks can significantly improve memory management without compromising security and robustness, and we believe hypercallbacks can be applied to many domains outside of memory management.
+Operating systems utilize Copy-on-Write (COW) to conserve memory and improve performance. During the last two decades, a series of COW-related bugs — that compromised security, corrupted memory and degraded performance — was found. The majority of these bugs is related to page “pinning,” which operating systems employ to access process memory efficiently and to perform direct I/O. We claim that the true cause of these bugs is not well understood, resulting in incomplete bug fixes. We substantiate this claim by: (1) surveying previously reported pinning-related COW bugs; (2) uncovering new such bugs in Linux, FreeBSD, and NetBSD; and (3) showing that they occur because the COW logic does not consider page pins correctly, resulting in incorrect behavior (e.g., I/O of stale data). We address this problem by defining when/how shared pages must be copied and under which conditions pinned pages can be shared to maintain correctness. We introduce the “Copy-on-Pin (COP)” scheme, an extension of the COW mechanism that handles pinned pages correctly by ensuring pinned pages and shared pages are mutually exclusive. However, we find that a naive implementation of this scheme hampers performance and increases complexity if pages are copied only when strictly necessary. To compensate, we introduce a relaxed-COP design, which does not require precise tracking of page sharing, maintains correctness without increasing complexity, and (while potentially needlessly copying pages in some corner cases) marginally improves performance. Our relaxed-COP solution has been integrated into Linux 5.19.
 </p>
 
 
