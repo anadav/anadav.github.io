@@ -44,9 +44,6 @@
 <loc>https://nadav.amit.zone/publications/rosenfeld2013using.html</loc>
 </url>
 <url>
-<loc>https://nadav.amit.zone/publications/amit2013enhancing.html</loc>
-</url>
-<url>
 <loc>https://nadav.amit.zone/publications/amit2014vswapper.html</loc>
 </url>
 <url>
@@ -66,9 +63,6 @@
 </url>
 <url>
 <loc>https://nadav.amit.zone/publications/lesokhin2017page.html</loc>
-</url>
-<url>
-<loc>https://nadav.amit.zone/publications/schuster2015memory.html</loc>
 </url>
 <url>
 <loc>https://nadav.amit.zone/publications/amit2017hypercallbacks.html</loc>
@@ -114,6 +108,12 @@
 </url>
 <url>
 <loc>https://nadav.amit.zone/publications/hildenbrand2023cow.html</loc>
+</url>
+<url>
+<loc>https://nadav.amit.zone/publications/10.1145/3606557.3606563.html</loc>
+</url>
+<url>
+<loc>https://nadav.amit.zone/publications/hertogh2023quarantine.html</loc>
 </url>
 <url>
 <loc>https://nadav.amit.zone/publications/CV.pdf</loc>
@@ -206,6 +206,10 @@
 <url>
 <loc>https://nadav.amit.zone/publications/gordon2012eli.pdf</loc>
 <lastmod>2022-12-05T09:29:30-08:00</lastmod>
+</url>
+<url>
+<loc>https://nadav.amit.zone/publications/hildenbrand2023cow.pdf</loc>
+<lastmod>2023-04-21T17:45:34-07:00</lastmod>
 </url>
 <url>
 <loc>https://nadav.amit.zone/publications/iotrposter.pdf</loc>
