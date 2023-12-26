@@ -142,7 +142,7 @@
     <p>Malka, Moshe and Amit, Nadav and Ben-Yehuda, Muli and Tsafrir, Dan</p>
 
 
-<p><em>ACM Proceedings of the Twentieth International Conference on Architectural Support for Programming Languages and Operating Systems</em>, 2015</p>
+<p><em>ACM Architectural Support for Programming Languages and Operating Systems (ASPLOS)</em>, 2015</p>
 
 
 
@@ -158,6 +158,8 @@ The IOMMU allows the OS to encapsulate I/O devices in their own virtual memory s
 We observe that high-bandwidth devicesâ€“-like network and PCIe SSD controllersâ€“-interact with the OS via circular ring buffers that that induce a sequential, predictable workload. We design a ring IOMMU (rIOMMU) that leverages this characteristic by replacing the virtual memory page table hierarchy with a circular, flat table. A flat table is adequately supported by exactly one IOTLB entry, making every new translation an implicit invalidation of the former and thus requiring explicit invalidations only at the end of I/O bursts. Using standard networking benchmarks, we show that rIOMMU provides up to 7.56x higher throughput relative to the baseline IOMMU, and that it is within 0.77â€“1.00x the throughput of a system without IOMMU protection.
 </p>
 
+
+    
 
     
 
@@ -345,6 +347,8 @@ We observe that high-bandwidth devicesâ€“-like network and PCIe SSD controllersâ
 
     
 
+    
+
 
 
     
@@ -436,8 +440,12 @@ We observe that high-bandwidth devicesâ€“-like network and PCIe SSD controllersâ
     
 
     
+
+    
+
 
 
+    
 
     
 
@@ -528,8 +536,10 @@ We observe that high-bandwidth devicesâ€“-like network and PCIe SSD controllersâ
     
 
     
+
 
 
+    
 
     
 
@@ -622,6 +632,8 @@ We observe that high-bandwidth devicesâ€“-like network and PCIe SSD controllersâ
     
 
 
+
+    
 
     
 
