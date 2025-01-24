@@ -119,6 +119,10 @@
     
   
     
+  
+    
+  
+    
     	<a class="page-link" href="/contact.html">Contact</a>
     
   
@@ -157,6 +161,12 @@ Distributed storage systems often triplicate data to reducue the risk of permane
 increases durability by utilizing small disk "add-on" for storing intra-disk erasure codes that are local to the server but fail independently from the disk. By carefully laying out the data, the add-ons allow RAIDP to recover from simultaneous disk failures (add-ons can be stacked to withstand an arbitrary number of failures). RAIDP retains much of the benefits of replication, trading off some performance and availability for substantially reduced storage requirements, networking overheads, and their related costs. We implement RAIDP in HDFS, which triplicates by default. We show that baseline RAIDP achieves performance close to that of HDFS with only two replicas, and performs within 21% of the default triplicating HDFS with an update-oriented variant, while halving the storage and networking overheads and providing similar durability.
 </p>
 
+
+    
+
+    
+
+    
 
     
 
@@ -348,7 +358,25 @@ increases durability by utilizing small disk "add-on" for storing intra-disk era
 
     
 
+    
+
+    
+
+    
+
+
+
+    
+
+    
+
+    
+
+    
 
+    
+
+    
 
     
 
@@ -436,13 +464,17 @@ increases durability by utilizing small disk "add-on" for storing intra-disk era
 
     
 
+
+
     
 
     
 
     
 
+    
 
+    
 
     
 
@@ -532,11 +564,15 @@ increases durability by utilizing small disk "add-on" for storing intra-disk era
 
     
 
+
+
     
 
     
 
+    
 
+    
 
     
 
@@ -628,9 +664,13 @@ increases durability by utilizing small disk "add-on" for storing intra-disk era
 
     
 
+
+
     
 
+    
 
+    
 
     
 

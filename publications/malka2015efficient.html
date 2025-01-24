@@ -119,6 +119,10 @@
     
   
     
+  
+    
+  
+    
     	<a class="page-link" href="/contact.html">Contact</a>
     
   
@@ -158,6 +162,12 @@ Operating systems can defend themselves against misbehaving I/O devices and driv
 We investigate the Linux intra-OS protection mapping layer and discover that hardware overheads are not exclusively to blame for its high cost. Rather, the cost is amplified by the I/O virtual address (IOVA) allocator, which regularly induces linear complexity. We find that the nature of IOVA allocation requests is inherently simple and constrained due to the manner by which I/O devices are used, allowing us to deliver constant time complexity with a compact, easy-to-implement optimization. Our optimization improves the throughput of standard benchmarks by up to 5.5x. It delivers strict protection with performance comparable to that of the baseline deferred protection. To generalize our case that OSes drive the IOMMU with suboptimal software, we additionally investigate the FreeBSD mapping layer and obtain similar findings.
 </p>
 
+
+    
+
+    
+
+    
 
     
 
@@ -349,7 +359,25 @@ We investigate the Linux intra-OS protection mapping layer and discover that har
 
     
 
+    
+
+    
+
+    
+
+
+
+    
+
+    
+
+    
+
+    
 
+    
+
+    
 
     
 
@@ -437,13 +465,17 @@ We investigate the Linux intra-OS protection mapping layer and discover that har
 
     
 
+
+
     
 
     
 
     
 
+    
 
+    
 
     
 
@@ -533,11 +565,15 @@ We investigate the Linux intra-OS protection mapping layer and discover that har
 
     
 
+
+
     
 
     
 
+    
 
+    
 
     
 
@@ -629,9 +665,13 @@ We investigate the Linux intra-OS protection mapping layer and discover that har
 
     
 
+
+
     
 
+    
 
+    
 
     
 

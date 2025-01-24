@@ -3,20 +3,20 @@
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1"><!-- Begin Jekyll SEO tag v2.8.0 -->
-<title>Quarantine: Mitigating Transient Execution Attacks with Physical Domain Isolation | Nadav Amit</title>
+<title>Eden: Developer-Friendly Application-Integrated Far Memory | Nadav Amit</title>
 <meta name="generator" content="Jekyll v4.3.1" />
-<meta property="og:title" content="Quarantine: Mitigating Transient Execution Attacks with Physical Domain Isolation" />
+<meta property="og:title" content="Eden: Developer-Friendly Application-Integrated Far Memory" />
 <meta property="og:locale" content="en_US" />
 <meta name="description" content="Fighting Operating Systems" />
 <meta property="og:description" content="Fighting Operating Systems" />
-<link rel="canonical" href="https://nadav.amit.zone/publications/hertogh2023quarantine.html" />
-<meta property="og:url" content="https://nadav.amit.zone/publications/hertogh2023quarantine.html" />
+<link rel="canonical" href="https://nadav.amit.zone/publications/yelam2025eden.html" />
+<meta property="og:url" content="https://nadav.amit.zone/publications/yelam2025eden.html" />
 <meta property="og:site_name" content="Nadav Amit" />
 <meta property="og:type" content="website" />
 <meta name="twitter:card" content="summary" />
-<meta property="twitter:title" content="Quarantine: Mitigating Transient Execution Attacks with Physical Domain Isolation" />
+<meta property="twitter:title" content="Eden: Developer-Friendly Application-Integrated Far Memory" />
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebPage","description":"Fighting Operating Systems","headline":"Quarantine: Mitigating Transient Execution Attacks with Physical Domain Isolation","url":"https://nadav.amit.zone/publications/hertogh2023quarantine.html"}</script>
+{"@context":"https://schema.org","@type":"WebPage","description":"Fighting Operating Systems","headline":"Eden: Developer-Friendly Application-Integrated Far Memory","url":"https://nadav.amit.zone/publications/yelam2025eden.html"}</script>
 <!-- End Jekyll SEO tag -->
 <link rel="stylesheet" href="/assets/main.css"><link type="application/atom+xml" rel="alternate" href="https://nadav.amit.zone/feed.xml" title="Nadav Amit" /></head>
 <body><header class="site-header" role="banner">
@@ -139,14 +139,14 @@
         <article class="post">
 
   <header class="post-header">
-    <h1 class="post-title">Quarantine: Mitigating Transient Execution Attacks with Physical Domain Isolation</h1>
+    <h1 class="post-title">Eden: Developer-Friendly Application-Integrated Far Memory</h1>
   </header>
 
   <div class="post-content">
-    <p>Hertogh, Mathé and Wiesinger, Manuel and Österlund, Sebastian and Muench, Marius and Amit, Nadav and Bos, Herbert and Giuffrida, Cristiano</p>
+    <p>Yelam, Anil and Grant, Stewart and Deshpande, Saarth and Amit, Nadav and Mysore, Radhika Niranjan and Ousterhout, Amy and Aguilera, Marcos K. and Snoeren, Alex C.</p>
 
 
-<p><em>International Symposium on Research in Attacks, Intrusions, and Defenses (RAID)</em>, 2023</p>
+<p><em>USENIX Symposium on Networked Systems Design and Implementation (NSDI)</em>, 2025</p>
 
 
 
@@ -157,7 +157,7 @@
 
 
 <p>
-Since the Spectre and Meltdown disclosure in 2018, the list of new transient execution vulnerabilities that abuse the shared nature of microarchitectural resources on CPU cores has been growing rapidly. In response, vendors keep deploying “spot” (per-variant) mitigations, which have become increasingly costly when combined against all the attacks—especially on older-generation processors. Indeed, some are so expensive that system administrators may not deploy them at all. Worse still, spot mitigations can only address known (N-day) attacks as they do not tackle the underlying problem: different security domains that run simultaneously on the same physical CPU cores and share their microarchitectural resources. In this paper, we propose Quarantine, a principled, software-only approach to mitigate transient execution attacks by eliminating sharing of microarchitectural resources. Quarantine decouples privileged and unprivileged execution and physically isolates different security domains on different CPU cores. We apply Quarantine to the Linux/KVM boundary and show it offers the system and its users blanket protection against malicous VMs and (unikernel) applications. Quarantine mitigates 24 out of the 27 known transient execution attacks on Intel CPUs and provides strong security guarantees against future attacks. On LMbench, Quarantine incurs a geomean overhead of 11.2%, much lower than the default configuration of spot mitigations on Linux distros such as Ubuntu (even though the spot mitigations offer only partial protection).
+
 </p>
 
 
@@ -233,8 +233,6 @@ Since the Spectre and Meltdown disclosure in 2018, the list of new transient exe
 
     
 
-    
-    	 [<a href="/publications/hertogh2023quarantine.pdf">PDF</a>]
     
 
     
